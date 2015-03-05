@@ -38,7 +38,7 @@ unsigned int get_relay_color(tServentInfo &info)
             else
             {
                 if(info.relays)
-                    return _RGB(0,160,255);
+                    return _RGB(0,0,255);
                 else
                     return _RGB(255,0,255);
             }
