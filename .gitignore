@@ -1,0 +1,12 @@
+Makefile
+tags
+peercast
+peercast.ini
+peercast_qt.ini
+*~
+*.swp
+*.o
+ui_*.h
+moc_*.cpp
+qrc_*.cpp
+
