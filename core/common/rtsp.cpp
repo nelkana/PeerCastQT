@@ -2,8 +2,8 @@
 // File : rtsp.cpp
 // Date: 4-apr-2002
 // Author: giles
-// Desc: 
-//		RTSP protocol handling (experimental)
+// Desc:
+//      RTSP protocol handling (experimental)
 //
 // (c) 2002 peercast.org
 // ------------------------------------------------

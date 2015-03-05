@@ -2,9 +2,9 @@
 // File : wsocket.h
 // Date: 4-apr-2002
 // Author: giles
-// Desc: 
-//		see .cpp for details
-//		
+// Desc:
+//      see .cpp for details
+//
 // (c) 2002 peercast.org
 // ------------------------------------------------
 // This program is free software; you can redistribute it and/or modify
@@ -38,54 +38,54 @@
 class UClientSocket : public ClientSocket
 {
 public:
-	static void	init();
+    static void init();
 
     UClientSocket()
     {
-		sockNum = 0;
-		rbPos = 0;
-		rbDataSize = 0;
+        sockNum = 0;
+        rbPos = 0;
+        rbDataSize = 0;
     }
 
-	~UClientSocket(){
-		bufList.clear();
-	}
+    ~UClientSocket(){
+        bufList.clear();
+    }
 
-	virtual void	open(Host &);
-	virtual int	read(void *, int);
-	virtual int	readUpto(void *, int);
-	virtual void	write(const void *, int);
-	virtual void	bind(Host &);
-	virtual void	connect();
-	virtual void	close();
-	virtual ClientSocket * accept();
-	virtual bool	active() {return sockNum != 0;}
-	virtual bool	readReady();
-	virtual int numPending();
+    virtual void    open(Host &);
+    virtual int read(void *, int);
+    virtual int readUpto(void *, int);
+    virtual void    write(const void *, int);
+    virtual void    bind(Host &);
+    virtual void    connect();
+    virtual void    close();
+    virtual ClientSocket * accept();
+    virtual bool    active() {return sockNum != 0;}
+    virtual bool    readReady();
+    virtual int numPending();
 
-	virtual Host	getLocalHost();
-	void	setBlocking(bool);
-	void	setReuse(bool);
-	void	setNagle(bool);
-	void	setLinger(int);
-	void	setBufSize(int size);
+    virtual Host    getLocalHost();
+    void    setBlocking(bool);
+    void    setReuse(bool);
+    void    setNagle(bool);
+    void    setLinger(int);
+    void    setBufSize(int size);
 
-	static	hostent		*resolveHost(char *);
+    static  hostent     *resolveHost(char *);
 
-	void	checkTimeout(bool,bool);
-	void	checkTimeout2(bool,bool);
+    void    checkTimeout(bool,bool);
+    void    checkTimeout2(bool,bool);
 
-	virtual void	bufferingWrite(const void*, int);
-	void	checkBuffering(bool, bool);
+    virtual void    bufferingWrite(const void*, int);
+    void    checkBuffering(bool, bool);
 
-	unsigned int sockNum;
-	struct sockaddr_in remoteAddr;
+    unsigned int sockNum;
+    struct sockaddr_in remoteAddr;
 
-	enum {RBSIZE = 8192};
-	char apReadBuf[RBSIZE];
-	int rbPos;
-	int rbDataSize;
+    enum {RBSIZE = 8192};
+    char apReadBuf[RBSIZE];
+    int rbPos;
+    int rbDataSize;
 
-	WLock sockLock;
+    WLock sockLock;
 };
 #endif

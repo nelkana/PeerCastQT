@@ -38,74 +38,74 @@ unsigned int get_relay_color(tServentInfo &info);
 class LogListBoxItem : public Q3ListBoxItem
 {
 public:
-	QString out;
-	int line_height, line_width;
-		
-	LogListBoxItem(QString str, Q3ListBox *lb);
+    QString out;
+    int line_height, line_width;
+
+    LogListBoxItem(QString str, Q3ListBox *lb);
 protected:
-	virtual void paint(QPainter *p);
-	
-	virtual int height(const Q3ListBox *lb) const
-	{
-		return line_height;
-	}
-	
-	virtual int width(const Q3ListBox *lb) const
-	{
-		return line_width;
-	}
+    virtual void paint(QPainter *p);
+
+    virtual int height(const Q3ListBox *lb) const
+    {
+        return line_height;
+    }
+
+    virtual int width(const Q3ListBox *lb) const
+    {
+        return line_width;
+    }
 };
 
 class ChannelListBoxItem : public Q3ListBoxItem
 {
 public:
-	int offset;
-	QString name, status;
-	GnuID id;
-	tServentInfo info;
-	int line_height, line_width, status_width;
-	bool receive, tracker, broadcast;
-		
-	ChannelListBoxItem(Channel *ch, Q3ListBox *lb);
-		
+    int offset;
+    QString name, status;
+    GnuID id;
+    tServentInfo info;
+    int line_height, line_width, status_width;
+    bool receive, tracker, broadcast;
+
+    ChannelListBoxItem(Channel *ch, Q3ListBox *lb);
+
 protected:
-	virtual void paint(QPainter *p);
-		
-	virtual int height(const Q3ListBox *lb) const
-	{
-		return line_height;
-	}
-		
-	virtual int width(const Q3ListBox *lb) const
-	{
-		return line_width;
-	}
+    virtual void paint(QPainter *p);
+
+    virtual int height(const Q3ListBox *lb) const
+    {
+        return line_height;
+    }
+
+    virtual int width(const Q3ListBox *lb) const
+    {
+        return line_width;
+    }
 };
 
 class ConnectionListBoxItem : public Q3ListBoxItem
 {
 public:
-	int offset;
-	QString out;
-	int servent_id;
-	tServentInfo info;
-	int line_height, line_width;
-	bool relaying;
-		
-	ConnectionListBoxItem(Servent *sv, tServentInfo &si, Q3ListBox *lb);
-		
+    int offset;
+    QString out;
+    int servent_id;
+    tServentInfo info;
+    int line_height, line_width;
+    bool relaying;
+
+    ConnectionListBoxItem(Servent *sv, tServentInfo &si, Q3ListBox *lb);
+
 protected:
-	virtual void paint(QPainter *p);
-		
-	virtual int height(const Q3ListBox *lb) const
-	{
-		return line_height;
-	}
-		
-	virtual int width(const Q3ListBox *lb) const
-	{
-		return line_width;
-	}
+    virtual void paint(QPainter *p);
+
+    virtual int height(const Q3ListBox *lb) const
+    {
+        return line_height;
+    }
+
+    virtual int width(const Q3ListBox *lb) const
+    {
+        return line_width;
+    }
 };
 
 #endif

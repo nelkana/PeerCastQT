@@ -1,6 +1,6 @@
 /*
  *
- * Š¿ŽšƒR[ƒh‚Ì”»•Ê‚µAiconv —p‚Ì•¶ŽšƒGƒ“ƒR[ƒfƒBƒ“ƒO•¶Žš—ñ‚ð•Ô‚·
+ * æ¼¢å­—ã‚³ãƒ¼ãƒ‰ã®åˆ¤åˆ¥ã—ã€iconv ç”¨ã®æ–‡å­—ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°æ–‡å­—åˆ—ã‚’è¿”ã™
  *
  * 2001/10/24  Remove static variables
  *             Kazuhiko Iwama <iwama@ymc.ne.jp>
@@ -15,23 +15,23 @@
 #define IDENTIFY_MAX_LENGTH 256
 
 enum identify_encoding_order {
-	ieo_EUCJP = 0,
-	ieo_SJIS  = 1
+    ieo_EUCJP = 0,
+    ieo_SJIS  = 1
 };
 
 typedef struct {
-	int flag;
-	int state;
-	int c_type;
+    int flag;
+    int state;
+    int c_type;
 } ie_state_t;
 
 typedef struct {
-	enum identify_encoding_order order;
-	ie_state_t  st_ascii;
-	ie_state_t  st_jis;
-	ie_state_t  st_sjis;
-	ie_state_t  st_eucjp;
-	ie_state_t  st_utf8;
+    enum identify_encoding_order order;
+    ie_state_t  st_ascii;
+    ie_state_t  st_jis;
+    ie_state_t  st_sjis;
+    ie_state_t  st_eucjp;
+    ie_state_t  st_utf8;
 } identify_encoding_t;
 
 identify_encoding_t* identify_encoding_open(enum identify_encoding_order order);

@@ -2,7 +2,7 @@
 // File : rtsp.h
 // Date: 4-apr-2002
 // Author: giles
-// Desc: 
+// Desc:
 //
 // (c) 2002 peercast.org
 // ------------------------------------------------
@@ -26,7 +26,7 @@
 class RTSP : public HTTP
 {
 public:
-	RTSP(Stream &s):HTTP(s){}
+    RTSP(Stream &s):HTTP(s){}
 };
 
 #endif

@@ -19,9 +19,9 @@
 
 typedef struct
 {
-	int type;
-	QString name;
-	QString msg;
+    int type;
+    QString name;
+    QString msg;
 }tNotifyInfo;
 
 extern bool g_bChangeSettings;

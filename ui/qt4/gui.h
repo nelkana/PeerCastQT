@@ -35,41 +35,41 @@
 
 class QMainForm : public QWidget, private Ui::MainFormBase
 {
-	Q_OBJECT
-	
+    Q_OBJECT
+
 public:
-	QMainForm(QWidget *parent = 0);
-	virtual ~QMainForm();
-	
-	QIcon ico;
-	QString iniFileName;
-	
-	int remainPopup;
+    QMainForm(QWidget *parent = 0);
+    virtual ~QMainForm();
+
+    QIcon ico;
+    QString iniFileName;
+
+    int remainPopup;
 
 #ifndef _APPLE
-	QMenu* trayMenu;
-	QMenu* trayMenuPopup;
-	QSystemTrayIcon* tray;
+    QMenu* trayMenu;
+    QMenu* trayMenuPopup;
+    QSystemTrayIcon* tray;
 #endif
-	
-	QAction* actionExit;
-	QAction* actionShow;
-	QAction* actionTracker;
-	QAction* actionTrack;
-	QAction* actionMsgPeerCast;
-	
-	QTimer* timerLogUpdate;
-	QTimer* timerUpdate;
-	
-	void reloadGui();
-	void setNotifyMask(ServMgr::NOTIFY_TYPE nt);
-	
-	void languageChange();
-	
+
+    QAction* actionExit;
+    QAction* actionShow;
+    QAction* actionTracker;
+    QAction* actionTrack;
+    QAction* actionMsgPeerCast;
+
+    QTimer* timerLogUpdate;
+    QTimer* timerUpdate;
+
+    void reloadGui();
+    void setNotifyMask(ServMgr::NOTIFY_TYPE nt);
+
+    void languageChange();
+
 public slots:
-	virtual void timerLogUpdate_timeout();
+    virtual void timerLogUpdate_timeout();
     virtual void timerUpdate_timeout();
-    
+
     virtual void pushButtonBump_clicked();
     virtual void pushButtonDisconnect_clicked();
     virtual void pushButtonKeep_clicked();
@@ -82,21 +82,21 @@ public slots:
     virtual void pushButtonNetwork_toggled(bool state);
     virtual void pushButtonChannel_toggled(bool state);
     virtual void pushButtonClear_clicked();
-    
-    virtual void listBoxChannel_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos);
-	virtual void listBoxConnection_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos);
 
-#ifndef _APPLE    
+    virtual void listBoxChannel_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos);
+    virtual void listBoxConnection_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos);
+
+#ifndef _APPLE
     virtual void tray_activated(QSystemTrayIcon::ActivationReason reason);
     virtual void tray_messageClicked();
-#endif    
+#endif
 
     virtual void actionTracker_triggered(bool checked);
     virtual void actionTrack_triggered(bool checked);
     virtual void actionMsgPeerCast_triggered(bool checked);
-	
+
 protected:
-	virtual void closeEvent(QCloseEvent *event);
+    virtual void closeEvent(QCloseEvent *event);
 };
 
 #endif
