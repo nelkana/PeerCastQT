@@ -19,7 +19,7 @@
 #ifndef _OGG_H
 #define _OGG_H
 
-
+#include <stdint.h>
 #include "channel.h"
 // ----------------------------------------------
 class OggPage;
