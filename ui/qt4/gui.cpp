@@ -11,23 +11,23 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // --------------------------------------------------------------------------
-
 #include "servmgr.h"
 
-#include <qapplication.h>
-#include <qsettings.h>
+#include <QApplication>
+#include <QSettings>
+#include <QScrollBar>
+#include <QCloseEvent>
 
 #include "main.h"
 #include "gui.h"
-#include "listitem.h"
+#include "listwidget.h"
 
 QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
 {
     setupUi(this);
 
-    listBoxConnection->setHScrollBarMode(Q3ListBox::AlwaysOff);
-    listBoxLog->setHScrollBarMode(Q3ListBox::AlwaysOff);
-    listBoxChannel->setHScrollBarMode(Q3ListBox::AlwaysOff);
+    listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(listWidgetChannel));
+    listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(listWidgetConnection));
 
     iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
 
@@ -45,10 +45,10 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     setWindowIcon(ico);
 
     timerUpdate = new QTimer(this);
-    timerUpdate->start(1000, false);
+    timerUpdate->start(1000);
 
     timerLogUpdate = new QTimer(this);
-    timerLogUpdate->start(100, false);
+    timerLogUpdate->start(100);
 
     connect(timerLogUpdate, SIGNAL(timeout()), this, SLOT(timerLogUpdate_timeout()));
     connect(timerUpdate, SIGNAL(timeout()), this, SLOT(timerUpdate_timeout()));
@@ -65,8 +65,9 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     connect(pushButtonKeep, SIGNAL(clicked()), this, SLOT(pushButtonKeep_clicked()));
     connect(pushButtonPlay, SIGNAL(clicked()), this, SLOT(pushButtonPlay_clicked()));
     connect(pushButtonDisconnectConn, SIGNAL(clicked()), this, SLOT(pushButtonDisconnectConn_clicked()));
-    connect(listBoxChannel, SIGNAL(mouseButtonClicked(int, Q3ListBoxItem *, const QPoint &)), this, SLOT(listBoxChannel_mouseButtonClicked(int, Q3ListBoxItem *, const QPoint &)));
-    connect(listBoxConnection, SIGNAL(mouseButtonClicked(int, Q3ListBoxItem *, const QPoint &)), this, SLOT(listBoxConnection_mouseButtonClicked(int, Q3ListBoxItem *, const QPoint &)));
+    //
+    connect(listWidgetChannel, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
+    connect(listWidgetConnection, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
 
     actionExit = new QAction(this);
     connect(actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
@@ -106,7 +107,7 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
 #endif
 
     reloadGui();
-    pushButtonEnabled->setOn(servMgr->autoServe);
+    pushButtonEnabled->setChecked(servMgr->autoServe);
 
     languageChange();
 }
@@ -146,11 +147,11 @@ void QMainForm::reloadGui()
     sprintf(sztemp, "%d", (int)servMgr->maxRelays);
     lineEditMaxRelays->setText(sztemp);
 
-    pushButtonDebug->setOn(servMgr->showLog&(1<<LogBuffer::T_DEBUG));
-    pushButtonError->setOn(servMgr->showLog&(1<<LogBuffer::T_ERROR));
-    pushButtonNetwork->setOn(servMgr->showLog&(1<<LogBuffer::T_NETWORK));
-    pushButtonChannel->setOn(servMgr->showLog&(1<<LogBuffer::T_CHANNEL));
-    pushButtonStop->setOn(servMgr->pauseLog);
+    pushButtonDebug->setChecked(servMgr->showLog&(1<<LogBuffer::T_DEBUG));
+    pushButtonError->setChecked(servMgr->showLog&(1<<LogBuffer::T_ERROR));
+    pushButtonNetwork->setChecked(servMgr->showLog&(1<<LogBuffer::T_NETWORK));
+    pushButtonChannel->setChecked(servMgr->showLog&(1<<LogBuffer::T_CHANNEL));
+    pushButtonStop->setChecked(servMgr->pauseLog);
 
     int mask = peercastInst->getNotifyMask();
 
@@ -181,17 +182,21 @@ void QMainForm::timerLogUpdate_timeout()    // 100ms
         remainPopup--;
     }
 
-    while(!g_qLog.empty())
+    if(!g_qLog.empty())
     {
-        QString str = g_qLog.front();
-        g_qLog.pop();
+        while(!g_qLog.empty())
+        {
+            QString str = g_qLog.front();
+            g_qLog.pop();
 
-        LogListBoxItem *item = new LogListBoxItem(str, listBoxLog);
-        listBoxLog->insertItem(item);
-        listBoxLog->setBottomItem(listBoxLog->count()-1);
+            QListWidgetItem *item = new QListWidgetItem(str, listWidgetLog);
+            listWidgetLog->addItem(item);
 
-        if(listBoxLog->count() > MAX_LOG_NUM)
-            listBoxLog->removeItem(0);
+            if(listWidgetLog->count() > MAX_LOG_NUM)
+                delete listWidgetLog->item(0);
+        }
+
+        listWidgetLog->scrollToBottom();
     }
 
     if(g_bChangeSettings)
@@ -208,12 +213,14 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
     sel_id.clear();
 
     {
+        bool block = listWidgetChannel->blockSignals(true);
+
         int n, y, count = 0;
         Channel *c;
 
-        n = selectedItem(listBoxChannel);
-        y = listBoxChannel->verticalScrollBar()->value();
-        listBoxChannel->clear();
+        y = listWidgetChannel->verticalScrollBar()->value();
+        n = listWidgetChannel->selectedCurrentRow();
+        listWidgetChannel->clear();
 
         chanMgr->lock.on();
 
@@ -223,8 +230,9 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
             if(n == count)
                 sel_id = c->info.id;
 
-            ChannelListBoxItem *item = new ChannelListBoxItem(c, listBoxChannel);
-            listBoxChannel->insertItem(item);
+            QListWidgetItem *item = new QListWidgetItem(listWidgetChannel);
+            item->setData(Qt::UserRole, QVariant::fromValue(ChannelListItemData(c)));
+            listWidgetChannel->addItem(item);
 
             c = c->next;
             count++;
@@ -232,17 +240,21 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
 
         chanMgr->lock.off();
 
-        listBoxChannel->verticalScrollBar()->setValue(y);
-        listBoxChannel->setSelected(n, true);
+        listWidgetChannel->setCurrentRow(n);
+        listWidgetChannel->verticalScrollBar()->setValue(y);
+
+        listWidgetChannel->blockSignals(block);
     }
 
     {
+        bool block = listWidgetConnection->blockSignals(true);
+
         int n, y;
         Servent *s;
 
-        n = selectedItem(listBoxConnection);
-        y = listBoxConnection->verticalScrollBar()->value();
-        listBoxConnection->clear();
+        y = listWidgetConnection->verticalScrollBar()->value();
+        n = listWidgetConnection->selectedCurrentRow();
+        listWidgetConnection->clear();
 
         servMgr->lock.on();
 
@@ -301,31 +313,35 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
                 chanMgr->hitlistlock.off();
             }
 
-            ConnectionListBoxItem *item = new ConnectionListBoxItem(s, info, listBoxConnection);
-            listBoxConnection->insertItem(item);
+            QListWidgetItem *item = new QListWidgetItem(listWidgetConnection);
+            item->setData(Qt::UserRole, QVariant::fromValue(ConnectionListItemData(s, info)));
+            listWidgetConnection->addItem(item);
 
             s = s->next;
         }
 
         servMgr->lock.off();
 
-        listBoxConnection->verticalScrollBar()->setValue(y);
-        listBoxConnection->setSelected(n, true);
+        listWidgetConnection->setCurrentRow(n);
+        listWidgetConnection->verticalScrollBar()->setValue(y);
+
+        listWidgetConnection->blockSignals(block);
     }
 }
 
 void QMainForm::pushButtonBump_clicked()
 {
     int n;
-    ChannelListBoxItem *item;
+    QListWidgetItem *item;
 
-    n = selectedItem(listBoxChannel);
-    item = (ChannelListBoxItem *)listBoxChannel->item(n);
+    n = listWidgetChannel->selectedCurrentRow();
+    item = listWidgetChannel->item(n);
     if(item)
     {
+        ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
         chanMgr->lock.on();
 
-        Channel *c = chanMgr->findChannelByID(item->id);
+        Channel *c = chanMgr->findChannelByID(data.id);
         if(c)
         {
             c->bump = true;
@@ -338,15 +354,16 @@ void QMainForm::pushButtonBump_clicked()
 void QMainForm::pushButtonDisconnect_clicked()
 {
     int n;
-    ChannelListBoxItem *item;
+    QListWidgetItem *item;
 
-    n = selectedItem(listBoxChannel);
-    item = (ChannelListBoxItem *)listBoxChannel->item(n);
+    n = listWidgetChannel->selectedCurrentRow();
+    item = listWidgetChannel->item(n);
     if(item)
     {
+        ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
         chanMgr->lock.on();
 
-        Channel *c = chanMgr->findChannelByID(item->id);
+        Channel *c = chanMgr->findChannelByID(data.id);
         if(c)
         {
             c->thread.active = false;
@@ -360,15 +377,16 @@ void QMainForm::pushButtonDisconnect_clicked()
 void QMainForm::pushButtonKeep_clicked()
 {
     int n;
-    ChannelListBoxItem *item;
+    QListWidgetItem *item;
 
-    n = selectedItem(listBoxChannel);
-    item = (ChannelListBoxItem *)listBoxChannel->item(n);
+    n = listWidgetChannel->selectedCurrentRow();
+    item = listWidgetChannel->item(n);
     if(item)
     {
+        ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
         chanMgr->lock.on();
 
-        Channel *c = chanMgr->findChannelByID(item->id);
+        Channel *c = chanMgr->findChannelByID(data.id);
         if(c)
         {
             c->stayConnected = !c->stayConnected;
@@ -381,15 +399,16 @@ void QMainForm::pushButtonKeep_clicked()
 void QMainForm::pushButtonPlay_clicked()
 {
     int n;
-    ChannelListBoxItem *item;
+    QListWidgetItem *item;
 
-    n = selectedItem(listBoxChannel);
-    item = (ChannelListBoxItem *)listBoxChannel->item(n);
+    n = listWidgetChannel->selectedCurrentRow();
+    item = listWidgetChannel->item(n);
     if(item)
     {
+        ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
         chanMgr->lock.on();
 
-        Channel *c = chanMgr->findChannelByID(item->id);
+        Channel *c = chanMgr->findChannelByID(data.id);
         if(c)
         {
             chanMgr->playChannel(c->info);
@@ -402,15 +421,17 @@ void QMainForm::pushButtonPlay_clicked()
 void QMainForm::pushButtonDisconnectConn_clicked()
 {
     int n;
-    ConnectionListBoxItem *item;
+    QListWidgetItem *item;
 
-    n = selectedItem(listBoxConnection);
-    item = (ConnectionListBoxItem *)listBoxConnection->item(n);
+    n = listWidgetConnection->selectedCurrentRow();
+    item = listWidgetConnection->item(n);
     if(item)
     {
+        ConnectionListItemData data = qvariant_cast<ConnectionListItemData>(item->data(Qt::UserRole));
+
         servMgr->lock.on();
 
-        Servent *s = servMgr->findServentByServentID(item->servent_id);
+        Servent *s = servMgr->findServentByServentID(data.servent_id);
         if(s)
         {
             s->thread.active = false;
@@ -485,7 +506,7 @@ void QMainForm::pushButtonChannel_toggled(bool state)
 
 void QMainForm::pushButtonClear_clicked()
 {
-    listBoxLog->clear();
+    listWidgetLog->clear();
     sys->logBuf->clear();
 }
 
@@ -538,89 +559,9 @@ void QMainForm::actionMsgPeerCast_triggered(bool checked)
     setNotifyMask(ServMgr::NT_PEERCAST);
 }
 
-void QMainForm::listBoxChannel_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos)
-{
-    if(item)
-    {
-        if(button == 2)
-        {
-            ChannelListBoxItem *li = (ChannelListBoxItem *)item;
-
-            chanMgr->lock.on();
-
-            Channel *c = chanMgr->findChannelByID(li->id);
-            if(c)
-            {
-                QString str;
-                QMenu *menu = new QMenu();
-
-                menu->addAction(QString::fromUtf8(c->info.name.data));
-
-                str = QString::fromUtf8(c->info.genre.data);
-                if(!c->info.genre.isEmpty() && !c->info.genre.isEmpty())
-                    str += " - ";
-                str += QString::fromUtf8(c->info.desc.data);
-                if(str != "")
-                {
-                    str = "[" + str + "]";
-                    menu->addAction(str);
-                }
-
-                str = QString::fromUtf8(c->info.track.artist.data);
-                if(!c->info.track.artist.isEmpty() && !c->info.track.title.isEmpty())
-                    str += " - ";
-                str += QString::fromUtf8(c->info.track.title.data);
-                if(str != "")
-                {
-                    str = "Playing: " + str;
-                    menu->addAction(str);
-                }
-
-                if(!c->info.comment.isEmpty())
-                {
-                    str = "\"";
-                    str += QString::fromUtf8(c->info.comment.data);
-                    str +="\"";
-                    menu->addAction(str);
-                }
-
-                chanMgr->lock.off();
-
-                menu->addSeparator();
-                menu->addAction("Deselect");
-
-                if(menu->exec(pos))
-                    listBoxChannel->clearSelection();
-
-                delete menu;
-            }
-            else
-            {
-                chanMgr->lock.off();
-            }
-        }
-    }
-    else
-    {
-        listBoxChannel->clearSelection();
-    }
-
-    timerUpdate_timeout();
-}
-
-void QMainForm::listBoxConnection_mouseButtonClicked(int button, Q3ListBoxItem *item, const QPoint &pos)
-{
-    if(item)
-    {
-    }
-    else
-    {
-        listBoxConnection->clearSelection();
-    }
-}
-
 void QMainForm::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
 }
+
