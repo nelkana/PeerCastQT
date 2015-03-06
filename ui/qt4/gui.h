@@ -1,7 +1,8 @@
 // --------------------------------------------------------------------------
-// File : gui.h
-// Author: ◆e5bW6vDOJ.
-// --------------------------------------------------------------------------
+// File: gui.h
+// Copyright (C) 2006-2008 ◆e5bW6vDOJ.
+// Copyright (C) 2015 nel
+//
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
