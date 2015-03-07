@@ -96,6 +96,9 @@ public:
 
     ConnectionListItemData();
     ConnectionListItemData(Servent *sv, tServentInfo &si);
+
+protected:
+    QString timeToStr(unsigned sec);
 };
 Q_DECLARE_METATYPE(ConnectionListItemData)
 
