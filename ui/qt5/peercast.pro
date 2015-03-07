@@ -2,6 +2,8 @@ TEMPLATE = app
 DEPENDPATH += .
 INCLUDEPATH += . ../../core ../../core/common
 CONFIG += qt warn_off
+QT += widgets
+
 CONFIG += release
 #CONFIG += debug
 

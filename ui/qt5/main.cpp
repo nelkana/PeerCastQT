@@ -17,7 +17,6 @@
 
 #ifdef _APPLE
 #include <Carbon/Carbon.h>
-#include <QPlastiqueStyle>
 #endif //_APPLE
 
 #include "peercast.h"
@@ -195,12 +194,6 @@ int main(int argc, char **argv)
     int ret;
     QString str;
     QApplication app(argc, argv);
-
-#ifdef _APPLE
-    QStyle *style = new QPlastiqueStyle;
-    QApplication::setStyle(style);
-    QApplication::setPalette(style->standardPalette());
-#endif
 
     str = app.applicationDirPath();
     str += "/peercast.ini";
