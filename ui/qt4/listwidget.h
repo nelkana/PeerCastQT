@@ -38,13 +38,17 @@ class ChannelConnectionListWidget : public QListWidget
     Q_OBJECT
 
 public:
-    ChannelConnectionListWidget(QWidget *parent=0):QListWidget(parent) {}
+    ChannelConnectionListWidget(QWidget *parent=0):QListWidget(parent) { this->blockFocusIn=false; }
     int selectedCurrentRow() const;
 
 protected:
+    bool event(QEvent *e);
     void mousePressEvent(QMouseEvent *);
 
     QPoint mousePressPos;
+
+private:
+    bool blockFocusIn;
 };
 
 class ChannelListWidget : public ChannelConnectionListWidget

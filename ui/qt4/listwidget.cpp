@@ -57,6 +57,25 @@ int ChannelConnectionListWidget::selectedCurrentRow() const
     return row;
 }
 
+bool ChannelConnectionListWidget::event(QEvent *e)
+{
+    // ウィンドウアクティブ時の不必要なカレント矩形線を表示しないようにする為の対応。
+    // ウィンドウがアクティブになった時、フォーカスのあるQListWigetのカレント行が
+    // 負の値を設定してるのに0に設定されるので、focusInイベントをブロックして回避する。
+    if( e->type() == QEvent::WindowActivate ) {
+        if( this == window()->focusWidget() )
+            this->blockFocusIn = true;
+    }
+    else if( e->type() == QEvent::FocusIn ) {
+        if( this->blockFocusIn ) {
+            this->blockFocusIn = false;
+            return true;
+        }
+    }
+
+    return QListWidget::event(e);
+}
+
 void ChannelConnectionListWidget::mousePressEvent(QMouseEvent *e)
 {
     this->mousePressPos = e->pos();
