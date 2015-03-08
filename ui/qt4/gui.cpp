@@ -72,7 +72,7 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     actionExit = new QAction(this);
     connect(actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
     actionShow = new QAction(this);
-    connect(actionShow, SIGNAL(triggered()), this, SLOT(show()));
+    connect(actionShow, SIGNAL(triggered()), this, SLOT(showGui()));
 
     actionTracker = new QAction(this);
     actionTracker->setCheckable(true);
@@ -158,6 +158,23 @@ void QMainForm::reloadGui()
     actionTracker->setChecked(mask & ServMgr::NT_BROADCASTERS);
     actionTrack->setChecked(mask & ServMgr::NT_TRACKINFO);
     actionMsgPeerCast->setChecked(mask & ServMgr::NT_PEERCAST);
+}
+
+void QMainForm::showGui()
+{
+    setVisible(true);
+    activateWindow();
+}
+
+void QMainForm::showHideGui()
+{
+    if( isMinimized() ) {
+        setVisible(true);
+        activateWindow();
+    }
+    else {
+        setVisible(!isVisible());
+    }
 }
 
 #define MAX_LOG_NUM 1024
@@ -516,16 +533,14 @@ void QMainForm::tray_activated(QSystemTrayIcon::ActivationReason reason)
 {
     switch(reason)
     {
-    case QSystemTrayIcon::DoubleClick:
-        show();
-        break;
-
     case QSystemTrayIcon::Trigger:
+    case QSystemTrayIcon::DoubleClick:
+        showHideGui();
         break;
 
 //  case QSystemTrayIcon::MiddleClick:
-//  case QSystemTrayIcon::Unknown:
 //  case QSystemTrayIcon::Context:
+//  case QSystemTrayIcon::Unknown:
     }
 }
 

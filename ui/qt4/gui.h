@@ -66,6 +66,9 @@ public:
     void languageChange();
 
 public slots:
+    virtual void showGui();
+    virtual void showHideGui();
+
     virtual void timerLogUpdate_timeout();
     virtual void timerUpdate_timeout();
 
