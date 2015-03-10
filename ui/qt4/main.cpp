@@ -103,7 +103,7 @@ public:
         strcpy(servMgr->modulePath, qApp->applicationDirPath().toLocal8Bit().data());
     }
 
-    virtual bool clearTemp()
+    virtual bool APICALL clearTemp()
     {
         return false;
     }

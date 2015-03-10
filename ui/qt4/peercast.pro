@@ -14,6 +14,10 @@ unix {
 win32 {
  LIBS += -lwsock32
  DEFINES += WIN32 QT
+ DEFINES -= UNICODE
+ CONFIG(debug, debug|release) {
+     CONFIG += console
+ }
  SOURCES += ../../core/win32/wsys.cpp ../../core/win32/wsocket.cpp
 }
 
