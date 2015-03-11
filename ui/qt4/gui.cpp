@@ -162,18 +162,29 @@ void QMainForm::reloadGui()
 
 void QMainForm::showGui()
 {
+#ifdef Q_OS_LINUX
     setVisible(true);
+#else
+    showNormal();
+#endif // Q_OS_LINUX
     activateWindow();
 }
 
 void QMainForm::showHideGui()
 {
-    if( isMinimized() ) {
+    if( isMinimized() || !isVisible() ) {
         setVisible(true);
         activateWindow();
     }
     else {
-        setVisible(!isVisible());
+#ifdef Q_OS_LINUX
+        if( isActiveWindow() )
+            setVisible(false);
+        else
+            activateWindow();
+#else
+        setVisible(false);
+#endif // Q_OS_LINUX
     }
 }
 
