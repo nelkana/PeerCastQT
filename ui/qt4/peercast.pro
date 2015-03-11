@@ -44,7 +44,11 @@ SOURCES += \
     listwidget.cpp \
     main.cpp
 
-FORMS = mainform.ui
+FORMS += \
+    mainform.ui
+
+RESOURCES += \
+    peercast.qrc
 
 SOURCES += \
     ../../core/common/socket.cpp \

@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/">
+    <file>peercast.xpm</file>
+    <file>peercast.ico</file>
+    <file>peercast.icns</file>
+  </qresource>
+</RCC>

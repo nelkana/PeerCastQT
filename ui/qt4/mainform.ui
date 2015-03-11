@@ -478,6 +478,8 @@
   <tabstop>pushButtonError</tabstop>
   <tabstop>pushButtonNetwork</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="peercast.qrc"/>
+ </resources>
  <connections/>
 </ui>

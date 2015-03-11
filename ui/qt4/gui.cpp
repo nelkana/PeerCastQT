@@ -42,7 +42,11 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
 
     remainPopup = -1;
 
-    ico.addFile(qApp->applicationDirPath() + "/peercast.xpm");
+#ifdef Q_OS_WIN32
+    ico.addFile(":/peercast.ico");
+#else
+    ico.addFile(":/peercast.xpm");
+#endif // Q_OS_WIN32
     setWindowIcon(ico);
 
     timerUpdate = new QTimer(this);
