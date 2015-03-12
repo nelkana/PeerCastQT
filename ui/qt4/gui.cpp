@@ -17,11 +17,14 @@
 #include <QApplication>
 #include <QSettings>
 #include <QScrollBar>
+#include <QTextFrame>
 #include <QCloseEvent>
 
 #include "main.h"
 #include "gui.h"
 #include "listwidget.h"
+
+#define MAX_LOG_NUM 1024
 
 QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
 {
@@ -29,6 +32,8 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
 
     listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(listWidgetChannel));
     listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(listWidgetConnection));
+    textEditLog->document()->setMaximumBlockCount(MAX_LOG_NUM);
+    initTextEditLogMargin();
 
     iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
 
@@ -192,7 +197,6 @@ void QMainForm::showHideGui()
     }
 }
 
-#define MAX_LOG_NUM 1024
 #define NOTIFY_TIMEOUT 8
 
 void QMainForm::timerLogUpdate_timeout()    // 100ms
@@ -214,21 +218,12 @@ void QMainForm::timerLogUpdate_timeout()    // 100ms
         remainPopup--;
     }
 
-    if(!g_qLog.empty())
+    while(!g_qLog.empty())
     {
-        while(!g_qLog.empty())
-        {
-            QString str = g_qLog.front();
-            g_qLog.pop();
+        QString str = g_qLog.front();
+        g_qLog.pop();
 
-            QListWidgetItem *item = new QListWidgetItem(str, listWidgetLog);
-            listWidgetLog->addItem(item);
-
-            if(listWidgetLog->count() > MAX_LOG_NUM)
-                delete listWidgetLog->item(0);
-        }
-
-        listWidgetLog->scrollToBottom();
+        textEditLog->append(str);
     }
 
     if(g_bChangeSettings)
@@ -538,8 +533,9 @@ void QMainForm::pushButtonChannel_toggled(bool state)
 
 void QMainForm::pushButtonClear_clicked()
 {
-    listWidgetLog->clear();
     sys->logBuf->clear();
+    textEditLog->clear();
+    initTextEditLogMargin();
 }
 
 #ifndef _APPLE
@@ -593,5 +589,16 @@ void QMainForm::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
+}
+
+void QMainForm::initTextEditLogMargin()
+{
+    QTextFrame *tf = textEditLog->document()->rootFrame();
+    QTextFrameFormat tff = tf->frameFormat();
+    tff.setTopMargin(1);
+    tff.setBottomMargin(1);
+    tff.setLeftMargin(2);
+    tff.setRightMargin(2);
+    tf->setFrameFormat(tff);
 }
 

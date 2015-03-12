@@ -96,6 +96,7 @@ public slots:
 
 protected:
     virtual void closeEvent(QCloseEvent *event);
+    virtual void initTextEditLogMargin();
 };
 
 #endif // GUIH
