@@ -31,6 +31,7 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     setupUi(this);
 
     listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(listWidgetChannel));
+    listWidgetChannel->setFocus();
     listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(listWidgetConnection));
     textEditLog->document()->setMaximumBlockCount(MAX_LOG_NUM);
     initTextEditLogMargin();
