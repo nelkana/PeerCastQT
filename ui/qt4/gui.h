@@ -15,7 +15,7 @@
 #ifndef GUIH
 #define GUIH
 
-#include "ui_mainform.h"
+#include "ui_mainwindow.h"
 
 #include "servmgr.h"
 
@@ -32,7 +32,7 @@
 #include <QSystemTrayIcon>
 #endif // _APPLE
 
-class QMainForm : public QWidget, private Ui::MainFormBase
+class QMainForm : public QWidget, protected Ui::MainWindow
 {
     Q_OBJECT
 

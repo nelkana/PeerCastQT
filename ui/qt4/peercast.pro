@@ -45,7 +45,7 @@ SOURCES += \
     main.cpp
 
 FORMS += \
-    mainform.ui
+    mainwindow.ui
 
 RESOURCES += \
     peercast.qrc
