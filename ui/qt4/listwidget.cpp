@@ -288,7 +288,7 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     {
         if(sv->status == Servent::S_CONNECTED)
         {
-            this->text.sprintf("RELAYING %s - %d/%d - %s - %s%s",
+            this->text.sprintf("RELAYING - %s - %d/%d - %s - %s%s",
                 time.toUtf8().constData(),
                 this->info.totalListeners,
                 this->info.totalRelays,
@@ -299,7 +299,7 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
         }
         else
         {
-            this->text.sprintf("%s-%s %s - %d/%d - %s - %s%s",
+            this->text.sprintf("%s-%s - %s - %d/%d - %s - %s%s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
                 time.toUtf8().constData(),
@@ -313,7 +313,7 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     }
     else if(sv->type == Servent::T_DIRECT)
     {
-        this->text.sprintf("%s-%s %s - %s - %s",
+        this->text.sprintf("%s-%s - %s - %s - %s",
             sv->getTypeStr(),
             sv->getStatusStr(),
             time.toUtf8().constData(),
@@ -325,7 +325,7 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     {
         if(sv->status == Servent::S_CONNECTED)
         {
-            this->text.sprintf("%s-%s %s - %s - %s",
+            this->text.sprintf("%s-%s - %s - %s - %s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
                 time.toUtf8().constData(),
@@ -335,7 +335,7 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
         }
         else
         {
-            this->text.sprintf("%s-%s %s - %s",
+            this->text.sprintf("%s-%s - %s - %s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
                 time.toUtf8().constData(),
