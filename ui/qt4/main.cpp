@@ -40,7 +40,7 @@ std::queue<QString> g_qLog;
 std::queue<tNotifyInfo> g_qNotify;
 String g_iniFilename;
 
-QMainForm *g_mainform = NULL;
+MainWindow *g_mainWindow = NULL;
 
 class MyPeercastInst : public PeercastInstance
 {
@@ -183,8 +183,8 @@ AEEventHandlerUPP sRAppHandler = NULL;
 
 OSErr AEHandleRApp(const AppleEvent *event, AppleEvent *reply, long refcon)
 {
-    if(g_mainform)
-        g_mainform->show();
+    if(g_mainWindow)
+        g_mainWindow->show();
 
     return 0;
 }
@@ -234,9 +234,9 @@ int main(int argc, char **argv)
     servMgr->getModulePath = false;
 
     {
-        QMainForm mainform;
+        MainWindow mainWindow;
 
-        g_mainform = &mainform;
+        g_mainWindow = &mainWindow;
 
 #ifdef _APPLE
         sRAppHandler = NewAEEventHandlerUPP(AEHandleRApp);
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 
         app.setQuitOnLastWindowClosed(false);
 
-        mainform.show();
+        mainWindow.show();
         ret = app.exec();
 
 #ifdef _APPLE
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
         DisposeAEEventHandlerUPP(sRAppHandler);
 #endif
 
-        g_mainform = NULL;
+        g_mainWindow = NULL;
     }
 
     peercastInst->saveSettings();

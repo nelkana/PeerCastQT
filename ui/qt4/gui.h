@@ -32,13 +32,13 @@
 #include <QSystemTrayIcon>
 #endif // _APPLE
 
-class QMainForm : public QWidget, protected Ui::MainWindow
+class MainWindow : public QWidget, protected Ui::MainWindow
 {
     Q_OBJECT
 
 public:
-    QMainForm(QWidget *parent = 0);
-    virtual ~QMainForm();
+    MainWindow(QWidget *parent = 0);
+    virtual ~MainWindow();
 
     QIcon ico;
     QString iniFileName;

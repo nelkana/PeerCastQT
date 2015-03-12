@@ -26,7 +26,7 @@
 
 #define MAX_LOG_NUM 1024
 
-QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
+MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
     setupUi(this);
 
@@ -122,7 +122,7 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     languageChange();
 }
 
-QMainForm::~QMainForm()
+MainWindow::~MainWindow()
 {
     {
         QSettings ini(iniFileName, QSettings::IniFormat);
@@ -132,7 +132,7 @@ QMainForm::~QMainForm()
     }
 }
 
-void QMainForm::languageChange()
+void MainWindow::languageChange()
 {
 #ifndef _APPLE
     tray->setToolTip(tr("PeerCast"));
@@ -147,7 +147,7 @@ void QMainForm::languageChange()
     actionShow->setText(tr("Show GUI"));
 }
 
-void QMainForm::reloadGui()
+void MainWindow::reloadGui()
 {
     char sztemp[256];
 
@@ -170,7 +170,7 @@ void QMainForm::reloadGui()
     actionMsgPeerCast->setChecked(mask & ServMgr::NT_PEERCAST);
 }
 
-void QMainForm::showGui()
+void MainWindow::showGui()
 {
 #ifdef Q_OS_LINUX
     setVisible(true);
@@ -180,7 +180,7 @@ void QMainForm::showGui()
     activateWindow();
 }
 
-void QMainForm::showHideGui()
+void MainWindow::showHideGui()
 {
     if( isMinimized() || !isVisible() ) {
         setVisible(true);
@@ -200,7 +200,7 @@ void QMainForm::showHideGui()
 
 #define NOTIFY_TIMEOUT 8
 
-void QMainForm::timerLogUpdate_timeout()    // 100ms
+void MainWindow::timerLogUpdate_timeout()    // 100ms
 {
     if(remainPopup < 0)
     {
@@ -234,7 +234,7 @@ void QMainForm::timerLogUpdate_timeout()    // 100ms
     }
 }
 
-void QMainForm::timerUpdate_timeout()   // 1000ms
+void MainWindow::timerUpdate_timeout()   // 1000ms
 {
     GnuID sel_id;
 
@@ -357,7 +357,7 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
     }
 }
 
-void QMainForm::pushButtonBump_clicked()
+void MainWindow::pushButtonBump_clicked()
 {
     int n;
     QListWidgetItem *item;
@@ -379,7 +379,7 @@ void QMainForm::pushButtonBump_clicked()
     }
 }
 
-void QMainForm::pushButtonDisconnect_clicked()
+void MainWindow::pushButtonDisconnect_clicked()
 {
     int n;
     QListWidgetItem *item;
@@ -402,7 +402,7 @@ void QMainForm::pushButtonDisconnect_clicked()
     }
 }
 
-void QMainForm::pushButtonKeep_clicked()
+void MainWindow::pushButtonKeep_clicked()
 {
     int n;
     QListWidgetItem *item;
@@ -424,7 +424,7 @@ void QMainForm::pushButtonKeep_clicked()
     }
 }
 
-void QMainForm::pushButtonPlay_clicked()
+void MainWindow::pushButtonPlay_clicked()
 {
     int n;
     QListWidgetItem *item;
@@ -446,7 +446,7 @@ void QMainForm::pushButtonPlay_clicked()
     }
 }
 
-void QMainForm::pushButtonDisconnectConn_clicked()
+void MainWindow::pushButtonDisconnectConn_clicked()
 {
     int n;
     QListWidgetItem *item;
@@ -469,7 +469,7 @@ void QMainForm::pushButtonDisconnectConn_clicked()
     }
 }
 
-void QMainForm::pushButtonEnabled_toggled(bool state)
+void MainWindow::pushButtonEnabled_toggled(bool state)
 {
     lineEditPort->setEnabled(state == 0);
     lineEditPassword->setEnabled(state == 0);
@@ -507,32 +507,32 @@ void QMainForm::pushButtonEnabled_toggled(bool state)
     }
 }
 
-void QMainForm::pushButtonStop_toggled(bool state)
+void MainWindow::pushButtonStop_toggled(bool state)
 {
     servMgr->pauseLog = state != 0;
 }
 
-void QMainForm::pushButtonDebug_toggled(bool state)
+void MainWindow::pushButtonDebug_toggled(bool state)
 {
     servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_DEBUG) : servMgr->showLog&~(1<<LogBuffer::T_DEBUG);
 }
 
-void QMainForm::pushButtonError_toggled(bool state)
+void MainWindow::pushButtonError_toggled(bool state)
 {
     servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_ERROR) : servMgr->showLog&~(1<<LogBuffer::T_ERROR);
 }
 
-void QMainForm::pushButtonNetwork_toggled(bool state)
+void MainWindow::pushButtonNetwork_toggled(bool state)
 {
     servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_NETWORK) : servMgr->showLog&~(1<<LogBuffer::T_NETWORK);
 }
 
-void QMainForm::pushButtonChannel_toggled(bool state)
+void MainWindow::pushButtonChannel_toggled(bool state)
 {
     servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_CHANNEL) : servMgr->showLog&~(1<<LogBuffer::T_CHANNEL);
 }
 
-void QMainForm::pushButtonClear_clicked()
+void MainWindow::pushButtonClear_clicked()
 {
     sys->logBuf->clear();
     textEditLog->clear();
@@ -541,7 +541,7 @@ void QMainForm::pushButtonClear_clicked()
 
 #ifndef _APPLE
 
-void QMainForm::tray_activated(QSystemTrayIcon::ActivationReason reason)
+void MainWindow::tray_activated(QSystemTrayIcon::ActivationReason reason)
 {
     switch(reason)
     {
@@ -556,14 +556,14 @@ void QMainForm::tray_activated(QSystemTrayIcon::ActivationReason reason)
     }
 }
 
-void QMainForm::tray_messageClicked()
+void MainWindow::tray_messageClicked()
 {
     remainPopup = 0;
 }
 
 #endif
 
-void QMainForm::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
+void MainWindow::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
 {
     int mask = peercastInst->getNotifyMask();
     mask ^= nt;
@@ -571,28 +571,28 @@ void QMainForm::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
     peercastInst->saveSettings();
 }
 
-void QMainForm::actionTracker_triggered(bool checked)
+void MainWindow::actionTracker_triggered(bool checked)
 {
     setNotifyMask(ServMgr::NT_BROADCASTERS);
 }
 
-void QMainForm::actionTrack_triggered(bool checked)
+void MainWindow::actionTrack_triggered(bool checked)
 {
     setNotifyMask(ServMgr::NT_TRACKINFO);
 }
 
-void QMainForm::actionMsgPeerCast_triggered(bool checked)
+void MainWindow::actionMsgPeerCast_triggered(bool checked)
 {
     setNotifyMask(ServMgr::NT_PEERCAST);
 }
 
-void QMainForm::closeEvent(QCloseEvent *event)
+void MainWindow::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
 }
 
-void QMainForm::initTextEditLogMargin()
+void MainWindow::initTextEditLogMargin()
 {
     QTextFrame *tf = textEditLog->document()->rootFrame();
     QTextFrameFormat tff = tf->frameFormat();
