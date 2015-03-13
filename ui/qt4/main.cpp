@@ -38,7 +38,6 @@
 bool g_bChangeSettings = false;
 std::queue<QString> g_qLog;
 std::queue<tNotifyInfo> g_qNotify;
-String g_iniFilename;
 
 MainWindow *g_mainWindow = NULL;
 
@@ -58,9 +57,15 @@ public:
 class MyPeercastApp : public PeercastApplication
 {
 public:
+    virtual void APICALL setIniFilenameFromLocal8Bit(const char *file)
+    {
+        iniFilename = QString::fromLocal8Bit(file);
+    }
+
+public:
     virtual const char * APICALL getIniFilename()
     {
-        return g_iniFilename;
+        return iniFilename.toLocal8Bit().constData();
     }
 
     virtual const char * APICALL getPath()
@@ -171,6 +176,7 @@ public:
         g_bChangeSettings = true;
     }
 
+    QString iniFilename;
     QString b_msg;
 
 //  virtual void APICALL channelStart(ChanInfo *info);
@@ -193,7 +199,6 @@ OSErr AEHandleRApp(const AppleEvent *event, AppleEvent *reply, long refcon)
 int main(int argc, char **argv)
 {
     int ret;
-    QString str;
     QApplication app(argc, argv);
 
 #ifdef _APPLE
@@ -202,16 +207,14 @@ int main(int argc, char **argv)
     QApplication::setPalette(style->standardPalette());
 #endif
 
-    str = app.applicationDirPath();
-    str += "/peercast.ini";
-    g_iniFilename.set(str.toLocal8Bit().data());
+    QString iniFilename;
 
-    for (int i = 1; i < argc; i++)
+    for(int i = 1; i < argc; i++)
     {
         if(!strcmp(argv[i],"--inifile") || !strcmp(argv[i],"-i"))
         {
             if(++i < argc)
-                g_iniFilename.setFromString(argv[i]);
+                iniFilename = QString::fromLocal8Bit(argv[i]);
         }
         else if(!strcmp(argv[i],"--help") || !strcmp(argv[i],"-h"))
         {
@@ -226,8 +229,14 @@ int main(int argc, char **argv)
         }
     }
 
+    if( iniFilename.isNull() )
+        iniFilename = app.applicationDirPath() + "/peercast.ini";
+
     peercastInst = new MyPeercastInst();
     peercastApp = new MyPeercastApp();
+
+    ((MyPeercastApp *)peercastApp)->setIniFilenameFromLocal8Bit(
+                                            iniFilename.toLocal8Bit().constData());
 
     peercastInst->init();
 
