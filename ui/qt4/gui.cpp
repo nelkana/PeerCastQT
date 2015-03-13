@@ -94,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     actionMsgPeerCast->setCheckable(true);
     connect(actionMsgPeerCast, SIGNAL(triggered(bool)), this, SLOT(actionMsgPeerCast_triggered(bool)));
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
     trayMenuPopup = new QMenu(this);
     trayMenuPopup->addAction(actionMsgPeerCast);
     trayMenuPopup->addAction(actionTracker);
@@ -114,7 +114,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
     connect(tray, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(tray_activated(QSystemTrayIcon::ActivationReason)));
     connect(tray, SIGNAL(messageClicked()), this, SLOT(tray_messageClicked()));
-#endif
+#endif // Q_OS_MAC
 
     reloadGui();
     pushButtonEnabled->setChecked(servMgr->autoServe);
@@ -124,20 +124,18 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
 MainWindow::~MainWindow()
 {
-    {
-        QSettings ini(iniFileName, QSettings::IniFormat);
+    QSettings ini(iniFileName, QSettings::IniFormat);
 
-        ini.setValue("geometry", saveGeometry());
-        ini.setValue("splitter", splitter->saveState());
-    }
+    ini.setValue("geometry", saveGeometry());
+    ini.setValue("splitter", splitter->saveState());
 }
 
 void MainWindow::languageChange()
 {
-#ifndef _APPLE
+#ifndef Q_OS_MAC
     tray->setToolTip(tr("PeerCast"));
     trayMenuPopup->setTitle(tr("Popup message"));
-#endif
+#endif // Q_OS_MAC
 
     actionTracker->setText(tr("Broadcasters"));
     actionTrack->setText(tr("Track info"));
@@ -208,9 +206,9 @@ void MainWindow::timerLogUpdate_timeout()    // 100ms
         {
             tNotifyInfo info = g_qNotify.front();
             g_qNotify.pop();
-#ifndef _APPLE
+#ifndef Q_OS_MAC
             tray->showMessage(info.name, info.msg, QSystemTrayIcon::NoIcon, NOTIFY_TIMEOUT*1000);
-#endif
+#endif // Q_OS_MAC
             remainPopup = NOTIFY_TIMEOUT*10;
         }
     }
@@ -539,7 +537,7 @@ void MainWindow::pushButtonClear_clicked()
     initTextEditLogMargin();
 }
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
 
 void MainWindow::tray_activated(QSystemTrayIcon::ActivationReason reason)
 {
@@ -561,7 +559,7 @@ void MainWindow::tray_messageClicked()
     remainPopup = 0;
 }
 
-#endif
+#endif // Q_OS_MAC
 
 void MainWindow::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
 {

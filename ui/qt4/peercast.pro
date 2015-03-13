@@ -23,7 +23,7 @@ win32 {
 
 macx {
  LIBS +=
- DEFINES += _APPLE
+ DEFINES +=
  ICON = peercast.icns
  TARGET = PeerCast
  CONFIG += x86 ppc sdk

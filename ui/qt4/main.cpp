@@ -15,10 +15,10 @@
 #include <stdio.h>
 #include <QApplication>
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
 #include <Carbon/Carbon.h>
 #include <QPlastiqueStyle>
-#endif //_APPLE
+#endif //Q_OS_MAC
 
 #include "peercast.h"
 #include "servmgr.h"
@@ -33,13 +33,12 @@
 
 #include "main.h"
 #include "gui.h"
-#include "listwidget.h"
 
 bool g_bChangeSettings = false;
 std::queue<QString> g_qLog;
 std::queue<tNotifyInfo> g_qNotify;
 
-MainWindow *g_mainWindow = NULL;
+MainWindow *g_mainWindow;
 
 class MyPeercastInst : public PeercastInstance
 {
@@ -59,13 +58,13 @@ class MyPeercastApp : public PeercastApplication
 public:
     virtual void APICALL setIniFilenameFromLocal8Bit(const char *file)
     {
-        iniFilename = QString::fromLocal8Bit(file);
+        this->iniFilename = QString::fromLocal8Bit(file);
     }
 
 public:
     virtual const char * APICALL getIniFilename()
     {
-        return iniFilename.toLocal8Bit().constData();
+        return this->iniFilename.toLocal8Bit().constData();
     }
 
     virtual const char * APICALL getPath()
@@ -79,15 +78,13 @@ public:
 
     virtual const char *APICALL getClientTypeOS()
     {
-#ifdef WIN32
+#if defined(WIN32)
         return PCX_OS_WIN32;
-#else //WIN32
- #ifdef __APPLE__
+#elif defined(__APPLE__)
         return PCX_OS_MACOSX;
- #else //__APPLE__
+#else
         return PCX_OS_LINUX;
- #endif //__APPLE__
-#endif //WIN32
+#endif
     }
 
     virtual void APICALL printLog(LogBuffer::TYPE t, const char *str)
@@ -143,11 +140,11 @@ public:
             }
         }
 
-        if(msg != "" && b_msg != msg)
+        if(msg != "" && this->b_msg != msg)
         {
             tNotifyInfo ninfo;
 
-            b_msg = msg;
+            this->b_msg = msg;
 
             ninfo.type = 0;
             ninfo.name = QString::fromUtf8(info->name.data);
@@ -184,7 +181,7 @@ public:
 //  virtual void APICALL openLogFile();
 };
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
 AEEventHandlerUPP sRAppHandler = NULL;
 
 OSErr AEHandleRApp(const AppleEvent *event, AppleEvent *reply, long refcon)
@@ -194,18 +191,17 @@ OSErr AEHandleRApp(const AppleEvent *event, AppleEvent *reply, long refcon)
 
     return 0;
 }
-#endif
+#endif // Q_OS_MAC
 
 int main(int argc, char **argv)
 {
-    int ret;
     QApplication app(argc, argv);
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
     QStyle *style = new QPlastiqueStyle;
     QApplication::setStyle(style);
     QApplication::setPalette(style->standardPalette());
-#endif
+#endif // Q_OS_MAC
 
     QString iniFilename;
 
@@ -242,25 +238,26 @@ int main(int argc, char **argv)
 
     servMgr->getModulePath = false;
 
+    int ret;
     {
         MainWindow mainWindow;
 
         g_mainWindow = &mainWindow;
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
         sRAppHandler = NewAEEventHandlerUPP(AEHandleRApp);
         AEInstallEventHandler(kCoreEventClass, kAEReopenApplication, sRAppHandler, 0, FALSE);
-#endif
+#endif // Q_OS_MAC
 
         app.setQuitOnLastWindowClosed(false);
 
         mainWindow.show();
         ret = app.exec();
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
         AERemoveEventHandler(kCoreEventClass, kAEReopenApplication, sRAppHandler, FALSE);
         DisposeAEEventHandlerUPP(sRAppHandler);
-#endif
+#endif // Q_OS_MAC
 
         g_mainWindow = NULL;
     }

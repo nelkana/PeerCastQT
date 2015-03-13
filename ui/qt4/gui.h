@@ -28,9 +28,9 @@
 #include <QIcon>
 #include <QMenu>
 #include <QEvent>
-#ifndef _APPLE
+#ifndef Q_OS_MAC
 #include <QSystemTrayIcon>
-#endif // _APPLE
+#endif // Q_OS_MAC
 
 class MainWindow : public QWidget, protected Ui::MainWindow
 {
@@ -45,11 +45,11 @@ public:
 
     int remainPopup;
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
     QMenu* trayMenu;
     QMenu* trayMenuPopup;
     QSystemTrayIcon* tray;
-#endif
+#endif // Q_OS_MAC
 
     QAction* actionExit;
     QAction* actionShow;
@@ -85,10 +85,10 @@ public slots:
     virtual void pushButtonChannel_toggled(bool state);
     virtual void pushButtonClear_clicked();
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
     virtual void tray_activated(QSystemTrayIcon::ActivationReason reason);
     virtual void tray_messageClicked();
-#endif
+#endif // Q_OS_MAC
 
     virtual void actionTracker_triggered(bool checked);
     virtual void actionTrack_triggered(bool checked);
