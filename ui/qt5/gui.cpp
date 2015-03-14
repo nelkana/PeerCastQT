@@ -17,95 +17,111 @@
 #include <QApplication>
 #include <QSettings>
 #include <QScrollBar>
+#include <QTextFrame>
 #include <QCloseEvent>
 
 #include "main.h"
 #include "gui.h"
 #include "listwidget.h"
 
-QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
+#define MAX_LOG_NUM 1024
+
+MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
     setupUi(this);
 
-    listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(listWidgetChannel));
-    listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(listWidgetConnection));
+    this->iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
 
-    iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
+    this->listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(this->listWidgetChannel));
+    this->listWidgetChannel->setFocus();
+    this->listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(this->listWidgetConnection));
+    this->textEditLog->document()->setMaximumBlockCount(MAX_LOG_NUM);
+    initTextEditLogMargin();
+
+    this->remainPopup = -1;
+
+#ifdef Q_OS_WIN32
+    this->ico.addFile(":/peercast.ico");
+#else
+    this->ico.addFile(":/peercast.xpm");
+#endif // Q_OS_WIN32
+    setWindowIcon(this->ico);
+
+    this->timerUpdate = new QTimer(this);
+    this->timerUpdate->start(1000);
+
+    this->timerLogUpdate = new QTimer(this);
+    this->timerLogUpdate->start(100);
+
+    connect(this->timerLogUpdate, SIGNAL(timeout()), this, SLOT(timerLogUpdate_timeout()));
+    connect(this->timerUpdate, SIGNAL(timeout()), this, SLOT(timerUpdate_timeout()));
+
+    connect(this->pushButtonEnabled, SIGNAL(toggled(bool)), this, SLOT(pushButtonEnabled_toggled(bool)));
+    connect(this->pushButtonStop, SIGNAL(toggled(bool)), this, SLOT(pushButtonStop_toggled(bool)));
+    connect(this->pushButtonDebug, SIGNAL(toggled(bool)), this, SLOT(pushButtonDebug_toggled(bool)));
+    connect(this->pushButtonError, SIGNAL(toggled(bool)), this, SLOT(pushButtonError_toggled(bool)));
+    connect(this->pushButtonNetwork, SIGNAL(toggled(bool)), this, SLOT(pushButtonNetwork_toggled(bool)));
+    connect(this->pushButtonChannel, SIGNAL(toggled(bool)), this, SLOT(pushButtonChannel_toggled(bool)));
+    connect(this->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClear_clicked()));
+    connect(this->pushButtonBump, SIGNAL(clicked()), this, SLOT(pushButtonBump_clicked()));
+    connect(this->pushButtonDisconnect, SIGNAL(clicked()), this, SLOT(pushButtonDisconnect_clicked()));
+    connect(this->pushButtonKeep, SIGNAL(clicked()), this, SLOT(pushButtonKeep_clicked()));
+    connect(this->pushButtonPlay, SIGNAL(clicked()), this, SLOT(pushButtonPlay_clicked()));
+    connect(this->pushButtonDisconnectConn, SIGNAL(clicked()), this, SLOT(pushButtonDisconnectConn_clicked()));
+    connect(this->listWidgetChannel, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
+    connect(this->listWidgetConnection, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
+
+    this->actionShow = new QAction(this);
+    connect(this->actionShow, SIGNAL(triggered()), this, SLOT(showGui()));
+    this->actionExit = new QAction(this);
+    connect(this->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
+
+    this->actionMsgPeerCast = new QAction(this);
+    this->actionMsgPeerCast->setCheckable(true);
+    connect(this->actionMsgPeerCast, SIGNAL(triggered(bool)), this, SLOT(actionMsgPeerCast_triggered(bool)));
+    this->actionTracker = new QAction(this);
+    this->actionTracker->setCheckable(true);
+    connect(this->actionTracker, SIGNAL(triggered(bool)), this, SLOT(actionTracker_triggered(bool)));
+    this->actionTrack = new QAction(this);
+    this->actionTrack->setCheckable(true);
+    connect(this->actionTrack, SIGNAL(triggered(bool)), this, SLOT(actionTrack_triggered(bool)));
+    this->actionHideGuiOnLaunch = new QAction(this);
+    this->actionHideGuiOnLaunch->setCheckable(true);
+    connect(this->actionHideGuiOnLaunch, SIGNAL(triggered(bool)), this, SLOT(actionHideGuiOnLaunch_triggered(bool)));
+
+#ifndef Q_OS_MAC
+    this->trayMenuPopup = new QMenu(this);
+    this->trayMenuPopup->addAction(this->actionMsgPeerCast);
+    this->trayMenuPopup->addAction(this->actionTracker);
+    this->trayMenuPopup->addAction(this->actionTrack);
+
+    this->trayMenuConfig = new QMenu(this);
+    this->trayMenuConfig->addAction(this->actionHideGuiOnLaunch);
+
+    this->trayMenu = new QMenu(this);
+    this->trayMenu->addAction(this->actionShow);
+    this->trayMenu->addSeparator();
+    this->trayMenu->addMenu(this->trayMenuPopup);
+    this->trayMenu->addMenu(this->trayMenuConfig);
+    this->trayMenu->addSeparator();
+    this->trayMenu->addAction(this->actionExit);
+
+    this->tray = new QSystemTrayIcon(this);
+    this->tray->setIcon(this->ico);
+    this->tray->setContextMenu(this->trayMenu);
+    this->tray->show();
+
+    connect(this->tray, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(tray_activated(QSystemTrayIcon::ActivationReason)));
+    connect(this->tray, SIGNAL(messageClicked()), this, SLOT(tray_messageClicked()));
+#endif // Q_OS_MAC
 
     {
-        QSettings ini(iniFileName, QSettings::IniFormat);
-        QRect rect;
+        QSettings s(this->iniFileName, QSettings::IniFormat);
 
-        restoreGeometry(ini.value("geometry").toByteArray());
-        splitter->restoreState(ini.value("splitter").toByteArray());
+        restoreGeometry(s.value("geometry").toByteArray());
+        this->splitter->restoreState(s.value("splitter").toByteArray());
+        this->actionHideGuiOnLaunch->setChecked(s.value("hideGuiOnLaunch", false).toBool());
     }
-
-    remainPopup = -1;
-
-    ico.addFile(qApp->applicationDirPath() + "/peercast.xpm");
-    setWindowIcon(ico);
-
-    timerUpdate = new QTimer(this);
-    timerUpdate->start(1000);
-
-    timerLogUpdate = new QTimer(this);
-    timerLogUpdate->start(100);
-
-    connect(timerLogUpdate, SIGNAL(timeout()), this, SLOT(timerLogUpdate_timeout()));
-    connect(timerUpdate, SIGNAL(timeout()), this, SLOT(timerUpdate_timeout()));
-
-    connect(pushButtonEnabled, SIGNAL(toggled(bool)), this, SLOT(pushButtonEnabled_toggled(bool)));
-    connect(pushButtonStop, SIGNAL(toggled(bool)), this, SLOT(pushButtonStop_toggled(bool)));
-    connect(pushButtonDebug, SIGNAL(toggled(bool)), this, SLOT(pushButtonDebug_toggled(bool)));
-    connect(pushButtonError, SIGNAL(toggled(bool)), this, SLOT(pushButtonError_toggled(bool)));
-    connect(pushButtonNetwork, SIGNAL(toggled(bool)), this, SLOT(pushButtonNetwork_toggled(bool)));
-    connect(pushButtonChannel, SIGNAL(toggled(bool)), this, SLOT(pushButtonChannel_toggled(bool)));
-    connect(pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClear_clicked()));
-    connect(pushButtonBump, SIGNAL(clicked()), this, SLOT(pushButtonBump_clicked()));
-    connect(pushButtonDisconnect, SIGNAL(clicked()), this, SLOT(pushButtonDisconnect_clicked()));
-    connect(pushButtonKeep, SIGNAL(clicked()), this, SLOT(pushButtonKeep_clicked()));
-    connect(pushButtonPlay, SIGNAL(clicked()), this, SLOT(pushButtonPlay_clicked()));
-    connect(pushButtonDisconnectConn, SIGNAL(clicked()), this, SLOT(pushButtonDisconnectConn_clicked()));
-    //
-    connect(listWidgetChannel, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
-    connect(listWidgetConnection, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
-
-    actionExit = new QAction(this);
-    connect(actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
-    actionShow = new QAction(this);
-    connect(actionShow, SIGNAL(triggered()), this, SLOT(show()));
-
-    actionTracker = new QAction(this);
-    actionTracker->setCheckable(true);
-    connect(actionTracker, SIGNAL(triggered(bool)), this, SLOT(actionTracker_triggered(bool)));
-    actionTrack = new QAction(this);
-    actionTrack->setCheckable(true);
-    connect(actionTrack, SIGNAL(triggered(bool)), this, SLOT(actionTrack_triggered(bool)));
-    actionMsgPeerCast = new QAction(this);
-    actionMsgPeerCast->setCheckable(true);
-    connect(actionMsgPeerCast, SIGNAL(triggered(bool)), this, SLOT(actionMsgPeerCast_triggered(bool)));
-
-#ifndef _APPLE
-    trayMenuPopup = new QMenu(this);
-    trayMenuPopup->addAction(actionMsgPeerCast);
-    trayMenuPopup->addAction(actionTracker);
-    trayMenuPopup->addAction(actionTrack);
-
-    trayMenu = new QMenu(this);
-    trayMenu->addAction(actionShow);
-    trayMenu->addSeparator();
-    trayMenu->addMenu(trayMenuPopup);
-    trayMenu->addSeparator();
-    trayMenu->addAction(actionExit);
-
-    tray = new QSystemTrayIcon(this);
-    tray->setIcon(ico);
-    tray->setContextMenu(trayMenu);
-    tray->show();
-
-    connect(tray, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(tray_activated(QSystemTrayIcon::ActivationReason)));
-    connect(tray, SIGNAL(messageClicked()), this, SLOT(tray_messageClicked()));
-#endif
 
     reloadGui();
     pushButtonEnabled->setChecked(servMgr->autoServe);
@@ -113,91 +129,114 @@ QMainForm::QMainForm(QWidget *parent) : QWidget(parent)
     languageChange();
 }
 
-QMainForm::~QMainForm()
+MainWindow::~MainWindow()
 {
-    {
-        QSettings ini(iniFileName, QSettings::IniFormat);
+    QSettings s(this->iniFileName, QSettings::IniFormat);
 
-        ini.setValue("geometry", saveGeometry());
-        ini.setValue("splitter", splitter->saveState());
-    }
+    s.setValue("geometry", saveGeometry());
+    s.setValue("splitter", this->splitter->saveState());
 }
 
-void QMainForm::languageChange()
+bool MainWindow::isHideGuiOnLaunch()
 {
-#ifndef _APPLE
-    tray->setToolTip(tr("PeerCast"));
-    trayMenuPopup->setTitle(tr("Popup message"));
-#endif
-
-    actionTracker->setText(tr("Broadcasters"));
-    actionTrack->setText(tr("Track info"));
-    actionMsgPeerCast->setText(tr("PeerCast"));
-
-    actionExit->setText(tr("Exit"));
-    actionShow->setText(tr("Show GUI"));
+    return this->actionHideGuiOnLaunch->isChecked();
 }
 
-void QMainForm::reloadGui()
+void MainWindow::languageChange()
+{
+#ifndef Q_OS_MAC
+    this->tray->setToolTip(tr("PeerCastQt"));
+    this->trayMenuPopup->setTitle(tr("Popup message"));
+    this->trayMenuConfig->setTitle(tr("Config"));
+#endif // Q_OS_MAC
+
+    this->actionMsgPeerCast->setText(tr("PeerCast"));
+    this->actionTracker->setText(tr("Broadcasters"));
+    this->actionTrack->setText(tr("Track info"));
+    this->actionHideGuiOnLaunch->setText(tr("Hide GUI on launch"));
+
+    this->actionShow->setText(tr("Show GUI"));
+    this->actionExit->setText(tr("Exit"));
+}
+
+void MainWindow::reloadGui()
 {
     char sztemp[256];
 
     sprintf(sztemp, "%d", (int)servMgr->serverHost.port);
-    lineEditPort->setText(sztemp);
-    lineEditPassword->setText(servMgr->password);
+    this->lineEditPort->setText(sztemp);
+    this->lineEditPassword->setText(servMgr->password);
     sprintf(sztemp, "%d", (int)servMgr->maxRelays);
-    lineEditMaxRelays->setText(sztemp);
+    this->lineEditMaxRelays->setText(sztemp);
 
-    pushButtonDebug->setChecked(servMgr->showLog&(1<<LogBuffer::T_DEBUG));
-    pushButtonError->setChecked(servMgr->showLog&(1<<LogBuffer::T_ERROR));
-    pushButtonNetwork->setChecked(servMgr->showLog&(1<<LogBuffer::T_NETWORK));
-    pushButtonChannel->setChecked(servMgr->showLog&(1<<LogBuffer::T_CHANNEL));
-    pushButtonStop->setChecked(servMgr->pauseLog);
+    this->pushButtonDebug->setChecked(servMgr->showLog&(1<<LogBuffer::T_DEBUG));
+    this->pushButtonError->setChecked(servMgr->showLog&(1<<LogBuffer::T_ERROR));
+    this->pushButtonNetwork->setChecked(servMgr->showLog&(1<<LogBuffer::T_NETWORK));
+    this->pushButtonChannel->setChecked(servMgr->showLog&(1<<LogBuffer::T_CHANNEL));
+    this->pushButtonStop->setChecked(servMgr->pauseLog);
 
     int mask = peercastInst->getNotifyMask();
 
-    actionTracker->setChecked(mask & ServMgr::NT_BROADCASTERS);
-    actionTrack->setChecked(mask & ServMgr::NT_TRACKINFO);
-    actionMsgPeerCast->setChecked(mask & ServMgr::NT_PEERCAST);
+    this->actionTracker->setChecked(mask & ServMgr::NT_BROADCASTERS);
+    this->actionTrack->setChecked(mask & ServMgr::NT_TRACKINFO);
+    this->actionMsgPeerCast->setChecked(mask & ServMgr::NT_PEERCAST);
 }
 
-#define MAX_LOG_NUM 1024
+void MainWindow::showGui()
+{
+#ifdef Q_OS_LINUX
+    setVisible(true);
+#else
+    showNormal();
+#endif // Q_OS_LINUX
+    activateWindow();
+}
+
+void MainWindow::showHideGui()
+{
+    if( isMinimized() || !isVisible() ) {
+        setVisible(true);
+        activateWindow();
+    }
+    else {
+#ifdef Q_OS_LINUX
+        if( isActiveWindow() )
+            setVisible(false);
+        else
+            activateWindow();
+#else
+        setVisible(false);
+#endif // Q_OS_LINUX
+    }
+}
+
 #define NOTIFY_TIMEOUT 8
 
-void QMainForm::timerLogUpdate_timeout()    // 100ms
+void MainWindow::timerLogUpdate_timeout()    // 100ms
 {
-    if(remainPopup < 0)
+    if(this->remainPopup < 0)
     {
         if(!g_qNotify.empty())
         {
             tNotifyInfo info = g_qNotify.front();
             g_qNotify.pop();
-#ifndef _APPLE
-            tray->showMessage(info.name, info.msg, QSystemTrayIcon::NoIcon, NOTIFY_TIMEOUT*1000);
-#endif
-            remainPopup = NOTIFY_TIMEOUT*10;
+#ifndef Q_OS_MAC
+            this->tray->showMessage(info.name, info.msg, QSystemTrayIcon::NoIcon, NOTIFY_TIMEOUT*1000);
+#endif // Q_OS_MAC
+            this->remainPopup = NOTIFY_TIMEOUT*10;
         }
     }
     else
     {
-        remainPopup--;
+        this->remainPopup--;
     }
 
-    if(!g_qLog.empty())
+    while(!g_qLog.empty())
     {
-        while(!g_qLog.empty())
-        {
-            QString str = g_qLog.front();
-            g_qLog.pop();
+        QString str = g_qLog.front();
+        g_qLog.pop();
 
-            QListWidgetItem *item = new QListWidgetItem(str, listWidgetLog);
-            listWidgetLog->addItem(item);
-
-            if(listWidgetLog->count() > MAX_LOG_NUM)
-                delete listWidgetLog->item(0);
-        }
-
-        listWidgetLog->scrollToBottom();
+        this->textEditLog->append(str);
     }
 
     if(g_bChangeSettings)
@@ -207,21 +246,21 @@ void QMainForm::timerLogUpdate_timeout()    // 100ms
     }
 }
 
-void QMainForm::timerUpdate_timeout()   // 1000ms
+void MainWindow::timerUpdate_timeout()   // 1000ms
 {
     GnuID sel_id;
 
     sel_id.clear();
 
     {
-        bool block = listWidgetChannel->blockSignals(true);
+        bool block = this->listWidgetChannel->blockSignals(true);
 
         int n, y, count = 0;
         Channel *c;
 
-        y = listWidgetChannel->verticalScrollBar()->value();
-        n = listWidgetChannel->selectedCurrentRow();
-        listWidgetChannel->clear();
+        y = this->listWidgetChannel->verticalScrollBar()->value();
+        n = this->listWidgetChannel->selectedCurrentRow();
+        this->listWidgetChannel->clear();
 
         chanMgr->lock.on();
 
@@ -231,9 +270,9 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
             if(n == count)
                 sel_id = c->info.id;
 
-            QListWidgetItem *item = new QListWidgetItem(listWidgetChannel);
+            QListWidgetItem *item = new QListWidgetItem(this->listWidgetChannel);
             item->setData(Qt::UserRole, QVariant::fromValue(ChannelListItemData(c)));
-            listWidgetChannel->addItem(item);
+            this->listWidgetChannel->addItem(item);
 
             c = c->next;
             count++;
@@ -241,21 +280,21 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
 
         chanMgr->lock.off();
 
-        listWidgetChannel->setCurrentRow(n);
-        listWidgetChannel->verticalScrollBar()->setValue(y);
+        this->listWidgetChannel->setCurrentRow(n);
+        this->listWidgetChannel->verticalScrollBar()->setValue(y);
 
-        listWidgetChannel->blockSignals(block);
+        this->listWidgetChannel->blockSignals(block);
     }
 
     {
-        bool block = listWidgetConnection->blockSignals(true);
+        bool block = this->listWidgetConnection->blockSignals(true);
 
         int n, y;
         Servent *s;
 
-        y = listWidgetConnection->verticalScrollBar()->value();
-        n = listWidgetConnection->selectedCurrentRow();
-        listWidgetConnection->clear();
+        y = this->listWidgetConnection->verticalScrollBar()->value();
+        n = this->listWidgetConnection->selectedCurrentRow();
+        this->listWidgetConnection->clear();
 
         servMgr->lock.on();
 
@@ -314,29 +353,29 @@ void QMainForm::timerUpdate_timeout()   // 1000ms
                 chanMgr->hitlistlock.off();
             }
 
-            QListWidgetItem *item = new QListWidgetItem(listWidgetConnection);
+            QListWidgetItem *item = new QListWidgetItem(this->listWidgetConnection);
             item->setData(Qt::UserRole, QVariant::fromValue(ConnectionListItemData(s, info)));
-            listWidgetConnection->addItem(item);
+            this->listWidgetConnection->addItem(item);
 
             s = s->next;
         }
 
         servMgr->lock.off();
 
-        listWidgetConnection->setCurrentRow(n);
-        listWidgetConnection->verticalScrollBar()->setValue(y);
+        this->listWidgetConnection->setCurrentRow(n);
+        this->listWidgetConnection->verticalScrollBar()->setValue(y);
 
-        listWidgetConnection->blockSignals(block);
+        this->listWidgetConnection->blockSignals(block);
     }
 }
 
-void QMainForm::pushButtonBump_clicked()
+void MainWindow::pushButtonBump_clicked()
 {
     int n;
     QListWidgetItem *item;
 
-    n = listWidgetChannel->selectedCurrentRow();
-    item = listWidgetChannel->item(n);
+    n = this->listWidgetChannel->selectedCurrentRow();
+    item = this->listWidgetChannel->item(n);
     if(item)
     {
         ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
@@ -352,13 +391,13 @@ void QMainForm::pushButtonBump_clicked()
     }
 }
 
-void QMainForm::pushButtonDisconnect_clicked()
+void MainWindow::pushButtonDisconnect_clicked()
 {
     int n;
     QListWidgetItem *item;
 
-    n = listWidgetChannel->selectedCurrentRow();
-    item = listWidgetChannel->item(n);
+    n = this->listWidgetChannel->selectedCurrentRow();
+    item = this->listWidgetChannel->item(n);
     if(item)
     {
         ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
@@ -375,13 +414,13 @@ void QMainForm::pushButtonDisconnect_clicked()
     }
 }
 
-void QMainForm::pushButtonKeep_clicked()
+void MainWindow::pushButtonKeep_clicked()
 {
     int n;
     QListWidgetItem *item;
 
-    n = listWidgetChannel->selectedCurrentRow();
-    item = listWidgetChannel->item(n);
+    n = this->listWidgetChannel->selectedCurrentRow();
+    item = this->listWidgetChannel->item(n);
     if(item)
     {
         ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
@@ -397,13 +436,13 @@ void QMainForm::pushButtonKeep_clicked()
     }
 }
 
-void QMainForm::pushButtonPlay_clicked()
+void MainWindow::pushButtonPlay_clicked()
 {
     int n;
     QListWidgetItem *item;
 
-    n = listWidgetChannel->selectedCurrentRow();
-    item = listWidgetChannel->item(n);
+    n = this->listWidgetChannel->selectedCurrentRow();
+    item = this->listWidgetChannel->item(n);
     if(item)
     {
         ChannelListItemData data = qvariant_cast<ChannelListItemData>(item->data(Qt::UserRole));
@@ -419,13 +458,13 @@ void QMainForm::pushButtonPlay_clicked()
     }
 }
 
-void QMainForm::pushButtonDisconnectConn_clicked()
+void MainWindow::pushButtonDisconnectConn_clicked()
 {
     int n;
     QListWidgetItem *item;
 
-    n = listWidgetConnection->selectedCurrentRow();
-    item = listWidgetConnection->item(n);
+    n = this->listWidgetConnection->selectedCurrentRow();
+    item = this->listWidgetConnection->item(n);
     if(item)
     {
         ConnectionListItemData data = qvariant_cast<ConnectionListItemData>(item->data(Qt::UserRole));
@@ -442,11 +481,11 @@ void QMainForm::pushButtonDisconnectConn_clicked()
     }
 }
 
-void QMainForm::pushButtonEnabled_toggled(bool state)
+void MainWindow::pushButtonEnabled_toggled(bool state)
 {
-    lineEditPort->setEnabled(state == 0);
-    lineEditPassword->setEnabled(state == 0);
-    lineEditMaxRelays->setEnabled(state == 0);
+    this->lineEditPort->setEnabled(state == 0);
+    this->lineEditPassword->setEnabled(state == 0);
+    this->lineEditMaxRelays->setEnabled(state == 0);
 
     if(state != 0)
     {
@@ -456,15 +495,15 @@ void QMainForm::pushButtonEnabled_toggled(bool state)
             unsigned short temp;
             bool success = false;
 
-            str = lineEditPassword->text();;
+            str = this->lineEditPassword->text();;
             strcpy(servMgr->password, str.toUtf8().data());
 
-            str = lineEditPort->text();
+            str = this->lineEditPort->text();
             temp = str.toUShort(&success);
             if(success)
                 servMgr->serverHost.port = temp;
 
-            str = lineEditMaxRelays->text();
+            str = this->lineEditMaxRelays->text();
             temp = str.toUShort(&success);
             if(success)
                 servMgr->setMaxRelays(temp);
@@ -480,89 +519,105 @@ void QMainForm::pushButtonEnabled_toggled(bool state)
     }
 }
 
-void QMainForm::pushButtonStop_toggled(bool state)
+void MainWindow::pushButtonStop_toggled(bool state)
 {
-    servMgr->pauseLog = state != 0;
+    servMgr->pauseLog = (state != 0);
 }
 
-void QMainForm::pushButtonDebug_toggled(bool state)
+void MainWindow::pushButtonDebug_toggled(bool state)
 {
-    servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_DEBUG) : servMgr->showLog&~(1<<LogBuffer::T_DEBUG);
+    servMgr->showLog = (state != 0) ? servMgr->showLog|(1<<LogBuffer::T_DEBUG) : servMgr->showLog&~(1<<LogBuffer::T_DEBUG);
 }
 
-void QMainForm::pushButtonError_toggled(bool state)
+void MainWindow::pushButtonError_toggled(bool state)
 {
-    servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_ERROR) : servMgr->showLog&~(1<<LogBuffer::T_ERROR);
+    servMgr->showLog = (state != 0) ? servMgr->showLog|(1<<LogBuffer::T_ERROR) : servMgr->showLog&~(1<<LogBuffer::T_ERROR);
 }
 
-void QMainForm::pushButtonNetwork_toggled(bool state)
+void MainWindow::pushButtonNetwork_toggled(bool state)
 {
-    servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_NETWORK) : servMgr->showLog&~(1<<LogBuffer::T_NETWORK);
+    servMgr->showLog = (state != 0) ? servMgr->showLog|(1<<LogBuffer::T_NETWORK) : servMgr->showLog&~(1<<LogBuffer::T_NETWORK);
 }
 
-void QMainForm::pushButtonChannel_toggled(bool state)
+void MainWindow::pushButtonChannel_toggled(bool state)
 {
-    servMgr->showLog = state != 0 ? servMgr->showLog|(1<<LogBuffer::T_CHANNEL) : servMgr->showLog&~(1<<LogBuffer::T_CHANNEL);
+    servMgr->showLog = (state != 0) ? servMgr->showLog|(1<<LogBuffer::T_CHANNEL) : servMgr->showLog&~(1<<LogBuffer::T_CHANNEL);
 }
 
-void QMainForm::pushButtonClear_clicked()
+void MainWindow::pushButtonClear_clicked()
 {
-    listWidgetLog->clear();
     sys->logBuf->clear();
+    this->textEditLog->clear();
+    initTextEditLogMargin();
 }
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
 
-void QMainForm::tray_activated(QSystemTrayIcon::ActivationReason reason)
+void MainWindow::tray_activated(QSystemTrayIcon::ActivationReason reason)
 {
     switch(reason)
     {
-    case QSystemTrayIcon::DoubleClick:
-        show();
-        break;
-
     case QSystemTrayIcon::Trigger:
+    case QSystemTrayIcon::DoubleClick:
+        showHideGui();
         break;
 
 //  case QSystemTrayIcon::MiddleClick:
-//  case QSystemTrayIcon::Unknown:
 //  case QSystemTrayIcon::Context:
+//  case QSystemTrayIcon::Unknown:
     }
 }
 
-void QMainForm::tray_messageClicked()
+void MainWindow::tray_messageClicked()
 {
-    remainPopup = 0;
+    this->remainPopup = 0;
 }
 
-#endif
+#endif // Q_OS_MAC
 
-void QMainForm::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
+void MainWindow::actionMsgPeerCast_triggered(bool checked)
+{
+    setNotifyMask(ServMgr::NT_PEERCAST);
+}
+
+void MainWindow::actionTracker_triggered(bool checked)
+{
+    setNotifyMask(ServMgr::NT_BROADCASTERS);
+}
+
+void MainWindow::actionTrack_triggered(bool checked)
+{
+    setNotifyMask(ServMgr::NT_TRACKINFO);
+}
+
+void MainWindow::actionHideGuiOnLaunch_triggered(bool checked)
+{
+    QSettings s(this->iniFileName, QSettings::IniFormat);
+    s.setValue("hideGuiOnLaunch", checked);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    hide();
+    event->ignore();
+}
+
+void MainWindow::initTextEditLogMargin()
+{
+    QTextFrame *tf = this->textEditLog->document()->rootFrame();
+    QTextFrameFormat tff = tf->frameFormat();
+    tff.setTopMargin(1);
+    tff.setBottomMargin(1);
+    tff.setLeftMargin(2);
+    tff.setRightMargin(2);
+    tf->setFrameFormat(tff);
+}
+
+void MainWindow::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
 {
     int mask = peercastInst->getNotifyMask();
     mask ^= nt;
     peercastInst->setNotifyMask(mask);
     peercastInst->saveSettings();
-}
-
-void QMainForm::actionTracker_triggered(bool checked)
-{
-    setNotifyMask(ServMgr::NT_BROADCASTERS);
-}
-
-void QMainForm::actionTrack_triggered(bool checked)
-{
-    setNotifyMask(ServMgr::NT_TRACKINFO);
-}
-
-void QMainForm::actionMsgPeerCast_triggered(bool checked)
-{
-    setNotifyMask(ServMgr::NT_PEERCAST);
-}
-
-void QMainForm::closeEvent(QCloseEvent *event)
-{
-    hide();
-    event->ignore();
 }
 

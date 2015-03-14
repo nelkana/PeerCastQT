@@ -15,9 +15,9 @@
 #include <stdio.h>
 #include <QApplication>
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
 #include <Carbon/Carbon.h>
-#endif //_APPLE
+#endif //Q_OS_MAC
 
 #include "peercast.h"
 #include "servmgr.h"
@@ -32,14 +32,12 @@
 
 #include "main.h"
 #include "gui.h"
-#include "listwidget.h"
 
 bool g_bChangeSettings = false;
 std::queue<QString> g_qLog;
 std::queue<tNotifyInfo> g_qNotify;
-String g_iniFilename;
 
-QMainForm *g_mainform = NULL;
+MainWindow *g_mainWindow;
 
 class MyPeercastInst : public PeercastInstance
 {
@@ -57,9 +55,15 @@ public:
 class MyPeercastApp : public PeercastApplication
 {
 public:
+    virtual void APICALL setIniFilenameFromLocal8Bit(const char *file)
+    {
+        this->iniFilename = QString::fromLocal8Bit(file);
+    }
+
+public:
     virtual const char * APICALL getIniFilename()
     {
-        return g_iniFilename;
+        return this->iniFilename.toLocal8Bit().constData();
     }
 
     virtual const char * APICALL getPath()
@@ -73,15 +77,13 @@ public:
 
     virtual const char *APICALL getClientTypeOS()
     {
-#ifdef WIN32
+#if defined(WIN32)
         return PCX_OS_WIN32;
-#else //WIN32
- #ifdef __APPLE__
+#elif defined(__APPLE__)
         return PCX_OS_MACOSX;
- #else //__APPLE__
+#else
         return PCX_OS_LINUX;
- #endif //__APPLE__
-#endif //WIN32
+#endif
     }
 
     virtual void APICALL printLog(LogBuffer::TYPE t, const char *str)
@@ -102,7 +104,7 @@ public:
         strcpy(servMgr->modulePath, qApp->applicationDirPath().toLocal8Bit().data());
     }
 
-    virtual bool clearTemp()
+    virtual bool APICALL clearTemp()
     {
         return false;
     }
@@ -137,11 +139,11 @@ public:
             }
         }
 
-        if(msg != "" && b_msg != msg)
+        if(msg != "" && this->b_msg != msg)
         {
             tNotifyInfo ninfo;
 
-            b_msg = msg;
+            this->b_msg = msg;
 
             ninfo.type = 0;
             ninfo.name = QString::fromUtf8(info->name.data);
@@ -170,6 +172,7 @@ public:
         g_bChangeSettings = true;
     }
 
+    QString iniFilename;
     QString b_msg;
 
 //  virtual void APICALL channelStart(ChanInfo *info);
@@ -177,34 +180,30 @@ public:
 //  virtual void APICALL openLogFile();
 };
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
 AEEventHandlerUPP sRAppHandler = NULL;
 
 OSErr AEHandleRApp(const AppleEvent *event, AppleEvent *reply, long refcon)
 {
-    if(g_mainform)
-        g_mainform->show();
+    if(g_mainWindow)
+        g_mainWindow->show();
 
     return 0;
 }
-#endif
+#endif // Q_OS_MAC
 
 int main(int argc, char **argv)
 {
-    int ret;
-    QString str;
     QApplication app(argc, argv);
 
-    str = app.applicationDirPath();
-    str += "/peercast.ini";
-    g_iniFilename.set(str.toLocal8Bit().data());
+    QString iniFilename;
 
-    for (int i = 1; i < argc; i++)
+    for(int i = 1; i < argc; i++)
     {
         if(!strcmp(argv[i],"--inifile") || !strcmp(argv[i],"-i"))
         {
             if(++i < argc)
-                g_iniFilename.setFromString(argv[i]);
+                iniFilename = QString::fromLocal8Bit(argv[i]);
         }
         else if(!strcmp(argv[i],"--help") || !strcmp(argv[i],"-h"))
         {
@@ -219,34 +218,43 @@ int main(int argc, char **argv)
         }
     }
 
+    if( iniFilename.isNull() )
+        iniFilename = app.applicationDirPath() + "/peercast.ini";
+
     peercastInst = new MyPeercastInst();
     peercastApp = new MyPeercastApp();
+
+    ((MyPeercastApp *)peercastApp)->setIniFilenameFromLocal8Bit(
+                                            iniFilename.toLocal8Bit().constData());
 
     peercastInst->init();
 
     servMgr->getModulePath = false;
 
+    int ret;
     {
-        QMainForm mainform;
+        MainWindow mainWindow;
 
-        g_mainform = &mainform;
+        g_mainWindow = &mainWindow;
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
         sRAppHandler = NewAEEventHandlerUPP(AEHandleRApp);
         AEInstallEventHandler(kCoreEventClass, kAEReopenApplication, sRAppHandler, 0, FALSE);
-#endif
+#endif // Q_OS_MAC
 
         app.setQuitOnLastWindowClosed(false);
 
-        mainform.show();
+        if( !mainWindow.isHideGuiOnLaunch() )
+            mainWindow.show();
+
         ret = app.exec();
 
-#ifdef _APPLE
+#ifdef Q_OS_MAC
         AERemoveEventHandler(kCoreEventClass, kAEReopenApplication, sRAppHandler, FALSE);
         DisposeAEEventHandlerUPP(sRAppHandler);
-#endif
+#endif // Q_OS_MAC
 
-        g_mainform = NULL;
+        g_mainWindow = NULL;
     }
 
     peercastInst->saveSettings();

@@ -15,7 +15,7 @@
 #ifndef GUIH
 #define GUIH
 
-#include "ui_mainform.h"
+#include "ui_mainwindow.h"
 
 #include "servmgr.h"
 
@@ -28,44 +28,26 @@
 #include <QIcon>
 #include <QMenu>
 #include <QEvent>
-#ifndef _APPLE
+#ifndef Q_OS_MAC
 #include <QSystemTrayIcon>
-#endif // _APPLE
+#endif // Q_OS_MAC
 
-class QMainForm : public QWidget, private Ui::MainFormBase
+class MainWindow : public QWidget, protected Ui::MainWindow
 {
     Q_OBJECT
 
 public:
-    QMainForm(QWidget *parent = 0);
-    virtual ~QMainForm();
+    MainWindow(QWidget *parent = 0);
+    virtual ~MainWindow();
 
-    QIcon ico;
-    QString iniFileName;
-
-    int remainPopup;
-
-#ifndef _APPLE
-    QMenu* trayMenu;
-    QMenu* trayMenuPopup;
-    QSystemTrayIcon* tray;
-#endif
-
-    QAction* actionExit;
-    QAction* actionShow;
-    QAction* actionTracker;
-    QAction* actionTrack;
-    QAction* actionMsgPeerCast;
-
-    QTimer* timerLogUpdate;
-    QTimer* timerUpdate;
-
-    void reloadGui();
-    void setNotifyMask(ServMgr::NOTIFY_TYPE nt);
-
-    void languageChange();
+    virtual bool isHideGuiOnLaunch();
+    virtual void languageChange();
+    virtual void reloadGui();
 
 public slots:
+    virtual void showGui();
+    virtual void showHideGui();
+
     virtual void timerLogUpdate_timeout();
     virtual void timerUpdate_timeout();
 
@@ -82,17 +64,42 @@ public slots:
     virtual void pushButtonChannel_toggled(bool state);
     virtual void pushButtonClear_clicked();
 
-#ifndef _APPLE
+#ifndef Q_OS_MAC
     virtual void tray_activated(QSystemTrayIcon::ActivationReason reason);
     virtual void tray_messageClicked();
-#endif
+#endif // Q_OS_MAC
 
+    virtual void actionMsgPeerCast_triggered(bool checked);
     virtual void actionTracker_triggered(bool checked);
     virtual void actionTrack_triggered(bool checked);
-    virtual void actionMsgPeerCast_triggered(bool checked);
+    virtual void actionHideGuiOnLaunch_triggered(bool checked);
 
 protected:
     virtual void closeEvent(QCloseEvent *event);
+    virtual void initTextEditLogMargin();
+    virtual void setNotifyMask(ServMgr::NOTIFY_TYPE nt);
+
+    QIcon ico;
+    QString iniFileName;
+
+    int remainPopup;
+
+#ifndef Q_OS_MAC
+    QMenu *trayMenu;
+    QMenu *trayMenuPopup;
+    QMenu *trayMenuConfig;
+    QSystemTrayIcon *tray;
+#endif // Q_OS_MAC
+
+    QAction *actionShow;
+    QAction *actionExit;
+    QAction *actionMsgPeerCast;
+    QAction *actionTracker;
+    QAction *actionTrack;
+    QAction *actionHideGuiOnLaunch;
+
+    QTimer *timerLogUpdate;
+    QTimer *timerUpdate;
 };
 
 #endif // GUIH

@@ -57,6 +57,25 @@ int ChannelConnectionListWidget::selectedCurrentRow() const
     return row;
 }
 
+bool ChannelConnectionListWidget::event(QEvent *e)
+{
+    // ウィンドウアクティブ時の不必要なカレント矩形線を表示しないようにする為の対応。
+    // ウィンドウがアクティブになった時、フォーカスのあるQListWigetのカレント行が
+    // 負の値を設定してるのに0に設定されるので、focusInイベントをブロックして回避する。
+    if( e->type() == QEvent::WindowActivate ) {
+        if( this == window()->focusWidget() )
+            this->blockFocusIn = true;
+    }
+    else if( e->type() == QEvent::FocusIn ) {
+        if( this->blockFocusIn ) {
+            this->blockFocusIn = false;
+            return true;
+        }
+    }
+
+    return QListWidget::event(e);
+}
+
 void ChannelConnectionListWidget::mousePressEvent(QMouseEvent *e)
 {
     this->mousePressPos = e->pos();
@@ -247,7 +266,6 @@ ConnectionListItemData::ConnectionListItemData()
 
 ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
 {
-    int time;
     char vp_ver[32], host_name[32];
 
     this->servent_id = sv->servent_id;
@@ -260,7 +278,9 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
 
     sv->getHost().toStr(host_name);
 
-    time = (sv->lastConnect) ? (sys->getTime() - sv->lastConnect) : 0;
+    QString time;
+    unsigned sec = (sv->lastConnect) ? (sys->getTime() - sv->lastConnect) : 0;
+    time = timeToStr(sec);
 
     this->relaying = (sv->type == Servent::T_RELAY);
 
@@ -268,8 +288,8 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     {
         if(sv->status == Servent::S_CONNECTED)
         {
-            this->text.sprintf("RELAYING - %ds - %d/%d - %s - %s%s",
-                time,
+            this->text.sprintf("RELAYING - %s - %d/%d - %s - %s%s",
+                time.toUtf8().constData(),
                 this->info.totalListeners,
                 this->info.totalRelays,
                 host_name,
@@ -279,10 +299,10 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
         }
         else
         {
-            this->text.sprintf("%s-%s - %ds - %d/%d - %s - %s%s",
+            this->text.sprintf("%s-%s - %s - %d/%d - %s - %s%s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
-                time,
+                time.toUtf8().constData(),
                 this->info.totalListeners,
                 this->info.totalRelays,
                 host_name,
@@ -293,10 +313,10 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     }
     else if(sv->type == Servent::T_DIRECT)
     {
-        this->text.sprintf("%s-%s - %ds - %s - %s",
+        this->text.sprintf("%s-%s - %s - %s - %s",
             sv->getTypeStr(),
             sv->getStatusStr(),
-            time,
+            time.toUtf8().constData(),
             host_name,
             sv->agent.cstr()
             );
@@ -305,24 +325,41 @@ ConnectionListItemData::ConnectionListItemData(Servent *sv, tServentInfo &si)
     {
         if(sv->status == Servent::S_CONNECTED)
         {
-            this->text.sprintf("%s-%s - %ds - %s - %s",
+            this->text.sprintf("%s-%s - %s - %s - %s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
-                time,
+                time.toUtf8().constData(),
                 host_name,
                 sv->agent.cstr()
                 );
         }
         else
         {
-            this->text.sprintf("%s-%s - %ds - %s",
+            this->text.sprintf("%s-%s - %s - %s",
                 sv->getTypeStr(),
                 sv->getStatusStr(),
-                time,
+                time.toUtf8().constData(),
                 host_name
                 );
         }
     }
+}
+
+QString ConnectionListItemData::timeToStr(unsigned sec)
+{
+    unsigned h, m, s;
+    h = sec / 3600;
+    sec %= 3600;
+    m = sec / 60;
+    s = sec % 60;
+
+    QString time;
+    if( h )
+        time.sprintf("%02d:%02d:%02d", h, m, s);
+    else
+        time.sprintf("%02d:%02d", m, s);
+
+    return time;
 }
 
 // --------------------------------------------------------------------------
