@@ -251,7 +251,9 @@ int main(int argc, char **argv)
 
         app.setQuitOnLastWindowClosed(false);
 
-        mainWindow.show();
+        if( !mainWindow.isHideGuiOnLaunch() )
+            mainWindow.show();
+
         ret = app.exec();
 
 #ifdef Q_OS_MAC

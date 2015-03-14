@@ -30,21 +30,13 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 {
     setupUi(this);
 
+    this->iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
+
     this->listWidgetChannel->setItemDelegate(new ChannelListItemDelegate(this->listWidgetChannel));
     this->listWidgetChannel->setFocus();
     this->listWidgetConnection->setItemDelegate(new ConnectionListItemDelegate(this->listWidgetConnection));
     this->textEditLog->document()->setMaximumBlockCount(MAX_LOG_NUM);
     initTextEditLogMargin();
-
-    this->iniFileName = qApp->applicationDirPath() + "/peercast_qt.ini";
-
-    {
-        QSettings ini(this->iniFileName, QSettings::IniFormat);
-        QRect rect;
-
-        restoreGeometry(ini.value("geometry").toByteArray());
-        this->splitter->restoreState(ini.value("splitter").toByteArray());
-    }
 
     this->remainPopup = -1;
 
@@ -79,20 +71,23 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     connect(this->listWidgetChannel, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
     connect(this->listWidgetConnection, SIGNAL(itemSelectionChanged()), this, SLOT(timerUpdate_timeout()));
 
-    this->actionExit = new QAction(this);
-    connect(this->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
     this->actionShow = new QAction(this);
     connect(this->actionShow, SIGNAL(triggered()), this, SLOT(showGui()));
+    this->actionExit = new QAction(this);
+    connect(this->actionExit, SIGNAL(triggered()), qApp, SLOT(quit()));
 
+    this->actionMsgPeerCast = new QAction(this);
+    this->actionMsgPeerCast->setCheckable(true);
+    connect(this->actionMsgPeerCast, SIGNAL(triggered(bool)), this, SLOT(actionMsgPeerCast_triggered(bool)));
     this->actionTracker = new QAction(this);
     this->actionTracker->setCheckable(true);
     connect(this->actionTracker, SIGNAL(triggered(bool)), this, SLOT(actionTracker_triggered(bool)));
     this->actionTrack = new QAction(this);
     this->actionTrack->setCheckable(true);
     connect(this->actionTrack, SIGNAL(triggered(bool)), this, SLOT(actionTrack_triggered(bool)));
-    this->actionMsgPeerCast = new QAction(this);
-    this->actionMsgPeerCast->setCheckable(true);
-    connect(this->actionMsgPeerCast, SIGNAL(triggered(bool)), this, SLOT(actionMsgPeerCast_triggered(bool)));
+    this->actionHideGuiOnLaunch = new QAction(this);
+    this->actionHideGuiOnLaunch->setCheckable(true);
+    connect(this->actionHideGuiOnLaunch, SIGNAL(triggered(bool)), this, SLOT(actionHideGuiOnLaunch_triggered(bool)));
 
 #ifndef Q_OS_MAC
     this->trayMenuPopup = new QMenu(this);
@@ -100,10 +95,14 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     this->trayMenuPopup->addAction(this->actionTracker);
     this->trayMenuPopup->addAction(this->actionTrack);
 
+    this->trayMenuConfig = new QMenu(this);
+    this->trayMenuConfig->addAction(this->actionHideGuiOnLaunch);
+
     this->trayMenu = new QMenu(this);
     this->trayMenu->addAction(this->actionShow);
     this->trayMenu->addSeparator();
     this->trayMenu->addMenu(this->trayMenuPopup);
+    this->trayMenu->addMenu(this->trayMenuConfig);
     this->trayMenu->addSeparator();
     this->trayMenu->addAction(this->actionExit);
 
@@ -116,6 +115,14 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     connect(this->tray, SIGNAL(messageClicked()), this, SLOT(tray_messageClicked()));
 #endif // Q_OS_MAC
 
+    {
+        QSettings s(this->iniFileName, QSettings::IniFormat);
+
+        restoreGeometry(s.value("geometry").toByteArray());
+        this->splitter->restoreState(s.value("splitter").toByteArray());
+        this->actionHideGuiOnLaunch->setChecked(s.value("hideGuiOnLaunch", false).toBool());
+    }
+
     reloadGui();
     pushButtonEnabled->setChecked(servMgr->autoServe);
 
@@ -124,25 +131,32 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
 
 MainWindow::~MainWindow()
 {
-    QSettings ini(this->iniFileName, QSettings::IniFormat);
+    QSettings s(this->iniFileName, QSettings::IniFormat);
 
-    ini.setValue("geometry", saveGeometry());
-    ini.setValue("splitter", this->splitter->saveState());
+    s.setValue("geometry", saveGeometry());
+    s.setValue("splitter", this->splitter->saveState());
+}
+
+bool MainWindow::isHideGuiOnLaunch()
+{
+    return this->actionHideGuiOnLaunch->isChecked();
 }
 
 void MainWindow::languageChange()
 {
 #ifndef Q_OS_MAC
-    this->tray->setToolTip(tr("PeerCast"));
+    this->tray->setToolTip(tr("PeerCastQt"));
     this->trayMenuPopup->setTitle(tr("Popup message"));
+    this->trayMenuConfig->setTitle(tr("Config"));
 #endif // Q_OS_MAC
 
+    this->actionMsgPeerCast->setText(tr("PeerCast"));
     this->actionTracker->setText(tr("Broadcasters"));
     this->actionTrack->setText(tr("Track info"));
-    this->actionMsgPeerCast->setText(tr("PeerCast"));
+    this->actionHideGuiOnLaunch->setText(tr("Hide GUI on launch"));
 
-    this->actionExit->setText(tr("Exit"));
     this->actionShow->setText(tr("Show GUI"));
+    this->actionExit->setText(tr("Exit"));
 }
 
 void MainWindow::reloadGui()
@@ -561,12 +575,9 @@ void MainWindow::tray_messageClicked()
 
 #endif // Q_OS_MAC
 
-void MainWindow::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
+void MainWindow::actionMsgPeerCast_triggered(bool checked)
 {
-    int mask = peercastInst->getNotifyMask();
-    mask ^= nt;
-    peercastInst->setNotifyMask(mask);
-    peercastInst->saveSettings();
+    setNotifyMask(ServMgr::NT_PEERCAST);
 }
 
 void MainWindow::actionTracker_triggered(bool checked)
@@ -579,9 +590,10 @@ void MainWindow::actionTrack_triggered(bool checked)
     setNotifyMask(ServMgr::NT_TRACKINFO);
 }
 
-void MainWindow::actionMsgPeerCast_triggered(bool checked)
+void MainWindow::actionHideGuiOnLaunch_triggered(bool checked)
 {
-    setNotifyMask(ServMgr::NT_PEERCAST);
+    QSettings s(this->iniFileName, QSettings::IniFormat);
+    s.setValue("hideGuiOnLaunch", checked);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -599,5 +611,13 @@ void MainWindow::initTextEditLogMargin()
     tff.setLeftMargin(2);
     tff.setRightMargin(2);
     tf->setFrameFormat(tff);
+}
+
+void MainWindow::setNotifyMask(ServMgr::NOTIFY_TYPE nt)
+{
+    int mask = peercastInst->getNotifyMask();
+    mask ^= nt;
+    peercastInst->setNotifyMask(mask);
+    peercastInst->saveSettings();
 }
 
