@@ -231,12 +231,18 @@ void MainWindow::timerLogUpdate_timeout()    // 100ms
         this->remainPopup--;
     }
 
-    while(!g_qLog.empty())
-    {
-        QString str = g_qLog.front();
-        g_qLog.pop();
+    if( !g_qLog.empty() ) {
+        QString out;
+        while( 1 ) {
+            out += g_qLog.front();
+            g_qLog.pop();
+            if( g_qLog.empty() )
+                break;
+            else
+                out += "\n";
+        }
 
-        this->textEditLog->append(str);
+        this->textEditLog->append(out);
     }
 
     if(g_bChangeSettings)
