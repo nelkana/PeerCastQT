@@ -21,6 +21,7 @@ win32 {
      CONFIG += console
  }
  SOURCES += ../../core/win32/wsys.cpp ../../core/win32/wsocket.cpp
+ RC_FILE = peercast.rc
 }
 
 macx {
